@@ -36,6 +36,7 @@ import {
 	type PlotStatus,
 	SCHEMA_VERSION,
 } from "./types.ts";
+import { assertViewName, type ImplementerView, renderImplementerView } from "./views.ts";
 
 export interface PlotStoreOptions {
 	dir: string;
@@ -211,6 +212,16 @@ export class PlotHandle {
 		return readEvents<PlotEvent>(plotEventsPath(this.store.dir, this.id), {
 			missingIsEmpty: true,
 		});
+	}
+
+	// Render a named view of the Plot (SPEC §8). V1 only supports the
+	// hardcoded `implementer` view; unknown names throw so callers don't
+	// silently receive a full-Plot dump.
+	async view(name: "implementer"): Promise<ImplementerView>;
+	async view(name: string): Promise<ImplementerView> {
+		assertViewName(name);
+		const [plot, events] = await Promise.all([this.read(), this.events()]);
+		return renderImplementerView(plot, events);
 	}
 
 	async editIntent(patch: Partial<Intent>): Promise<Plot> {

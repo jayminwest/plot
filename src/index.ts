@@ -13,6 +13,7 @@ export { SQLitePlotIndex } from "./sqlite-index.ts";
 export * from "./store.ts";
 export * from "./types.ts";
 export { VERSION } from "./version.ts";
+export * from "./views.ts";
 
 if (import.meta.main) {
 	const arg = Bun.argv[2];
