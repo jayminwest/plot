@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-05-17
+
+No functional changes. Re-release to recover the initial npm publish after the
+0.1.0 version slot on `@os-eco/plot-cli` was blocked from republishing.
+
 ## [0.1.0] — 2026-05-17
 
 First usable release: the **single-user binder** scope from SPEC §3–§10. A human can
