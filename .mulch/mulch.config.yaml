@@ -5,6 +5,7 @@ domains:
   index: {}
   store: {}
   acl: {}
+  views: {}
 governance:
   max_entries: 100
   warn_entries: 150
