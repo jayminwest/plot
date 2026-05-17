@@ -8,6 +8,7 @@
 // Write-ACL enforcement (SPEC §6) and view rendering (§8) are layered on
 // top of this in separate modules.
 
+import { assertCanEmit } from "./acl.ts";
 import { type Actor, formatActor } from "./actor.ts";
 import { assertAttachmentId, assertPlotId, generatePlotId, nextAttachmentId } from "./id.ts";
 import {
@@ -87,6 +88,7 @@ export class PlotStore {
 		if (!input.name || input.name.length === 0) {
 			throw new Error("PlotStore.create: name is required");
 		}
+		assertCanEmit(this.actor, "plot_created");
 		const existing = new Set(await listPlotIds(this.dir));
 		const id = generatePlotId(existing);
 		const now = this.nowIso();
@@ -204,6 +206,7 @@ export class PlotHandle {
 
 	async editIntent(patch: Partial<Intent>): Promise<Plot> {
 		assertIntentPatch(patch);
+		assertCanEmit(this.store.actor, "intent_edited");
 		const actorStr = formatActor(this.store.actor);
 		const { plot } = await this.store.transact(this.id, (current, now) => {
 			const nextIntent: Intent = { ...current.intent };
@@ -232,6 +235,7 @@ export class PlotHandle {
 		if (!input.role || input.role.length === 0) {
 			throw new Error("PlotHandle.attach: role is required");
 		}
+		assertCanEmit(this.store.actor, "attachment_added");
 		const actorStr = formatActor(this.store.actor);
 		let added!: Attachment;
 		await this.store.transact(this.id, (current, now) => {
@@ -261,6 +265,7 @@ export class PlotHandle {
 
 	async detach(attachmentId: string): Promise<void> {
 		assertAttachmentId(attachmentId);
+		assertCanEmit(this.store.actor, "attachment_removed");
 		const actorStr = formatActor(this.store.actor);
 		await this.store.transact(this.id, (current, now) => {
 			const idx = current.attachments.findIndex((a) => a.id === attachmentId);
@@ -287,6 +292,7 @@ export class PlotHandle {
 				`invalid status ${JSON.stringify(status)} (expected one of ${PLOT_STATUSES.join(", ")})`,
 			);
 		}
+		assertCanEmit(this.store.actor, "status_changed");
 		const actorStr = formatActor(this.store.actor);
 		const { plot } = await this.store.transact(this.id, (current, now) => {
 			if (current.status === status) {
@@ -315,6 +321,7 @@ export class PlotHandle {
 				`PlotHandle.append: event type ${JSON.stringify(input.type)} is not appendable directly${hint ? ` — ${hint}` : ""}`,
 			);
 		}
+		assertCanEmit(this.store.actor, input.type);
 
 		const jsonPath = plotJsonPath(this.store.dir, this.id);
 		const eventsPath = plotEventsPath(this.store.dir, this.id);

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { VERSION } from "./version.ts";
 
+export * from "./acl.ts";
 export * from "./actor.ts";
 export * from "./id.ts";
 export * from "./io.ts";

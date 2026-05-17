@@ -357,6 +357,86 @@ describe("append", () => {
 	});
 });
 
+describe("write-ACL (SPEC §6)", () => {
+	test("agent cannot editIntent — error redirects to question_posed", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		expect(agentHandle.editIntent({ goal: "agents shouldn't do this" })).rejects.toThrow(
+			/write-ACL.*intent_edited.*question_posed/s,
+		);
+		// No event was written.
+		const events = await readEventLines(handle.id);
+		expect(events).toHaveLength(1);
+	});
+
+	test("agent cannot setStatus", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		expect(agentHandle.setStatus("ready")).rejects.toThrow(/write-ACL.*status_changed/);
+	});
+
+	test("agent cannot detach", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const att = await handle.attach({ type: "seeds_issue", ref: "sd-1", role: "tracks" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		expect(agentHandle.detach(att.id)).rejects.toThrow(/write-ACL.*attachment_removed/);
+		const plot = await handle.read();
+		expect(plot.attachments).toHaveLength(1);
+	});
+
+	test("agent cannot question_answered via append", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		expect(agentHandle.append({ type: "question_answered", data: { text: "no" } })).rejects.toThrow(
+			/write-ACL.*question_answered/,
+		);
+	});
+
+	test("user cannot decision_made / question_posed / artifact_produced via append", async () => {
+		const store = makeStore(USER);
+		const handle = await store.create({ name: "X" });
+		expect(handle.append({ type: "decision_made", data: { summary: "x" } })).rejects.toThrow(
+			/write-ACL.*decision_made/,
+		);
+		expect(
+			handle.append({ type: "question_posed", data: { text: "?", blocking: false } }),
+		).rejects.toThrow(/write-ACL.*question_posed/);
+		expect(
+			handle.append({ type: "artifact_produced", data: { type: "file", ref: "a" } }),
+		).rejects.toThrow(/write-ACL.*artifact_produced/);
+	});
+
+	test("agent can append decision_made / question_posed / artifact_produced / note / run_dispatched", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		await agentHandle.append({ type: "decision_made", data: { summary: "s" } });
+		await agentHandle.append({ type: "question_posed", data: { text: "q", blocking: false } });
+		await agentHandle.append({ type: "artifact_produced", data: { type: "file", ref: "r" } });
+		await agentHandle.append({ type: "note", data: { text: "n" } });
+		await agentHandle.append({ type: "run_dispatched", data: { run_id: "run-1" } });
+		const events = await readEventLines(handle.id);
+		// 1 plot_created + 5 appends
+		expect(events).toHaveLength(6);
+	});
+
+	test("agent attach is allowed (attachment_added is anyone)", async () => {
+		const userStore = makeStore(USER);
+		const handle = await userStore.create({ name: "X" });
+		const agentHandle = makeStore(AGENT).get(handle.id);
+		const att = await agentHandle.attach({
+			type: "gh_pr",
+			ref: "o/r#1",
+			role: "implements",
+		});
+		expect(att.added_by).toBe("agent:claude:run-1");
+	});
+});
+
 describe("on-disk format", () => {
 	test("Plot JSON keys are deep-sorted (matches stableStringify)", async () => {
 		const store = makeStore();
