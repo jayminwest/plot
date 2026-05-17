@@ -1,12 +1,6 @@
-# Mulch configuration. See https://github.com/jayminwest/mulch for docs.
-#
-# Required fields below. Optional knobs are commented out at the bottom — uncomment
-# to enable. Note: commands that mutate this file (e.g. `ml add <domain>`,
-# `ml record` auto-creating a domain) rewrite it via the YAML serializer and
-# strip these comments.
-
 version: '1'
-domains: {}
+domains:
+  data-model: {}
 governance:
   max_entries: 100
   warn_entries: 150
@@ -15,88 +9,3 @@ classification_defaults:
   shelf_life:
     tactical: 14
     observational: 30
-
-# ─── Optional knobs (uncomment to enable) ────────────────────────────────────
-#
-# prime:
-#   # Pin `ml prime`'s unscoped output shape. When unset (recommended), prime
-#   # auto-flips to manifest above 100 records or 5 domains and renders full
-#   # records otherwise. Set explicitly to override both directions:
-#   #   - full     → always emit full records (skip the auto-flip)
-#   #   - manifest → always emit the domain index
-#   # --full / --manifest / scoping flags always override this on a per-call basis.
-#   default_mode: full        # one of: full, manifest
-#   # Trust-tier ranking weights for full-mode output. Sort score per record =
-#   # (★ count * star) + classification weight. Override only the knobs you
-#   # want to retune; unset fields keep their default. Higher scores surface
-#   # first; within-tier ties preserve insertion order.
-#   tier_weights:
-#     star: 100               # multiplier on the ★ confirmation count
-#     foundational: 50        # base score for foundational records
-#     tactical: 20             # base score for tactical records
-#     observational: 10        # base score for observational records
-#
-# search:
-#   # Multiplier applied to BM25 scores so records with more confirmed outcomes
-#   # rank higher. 0 disables (pure BM25). Default 0.1: a record with N successes
-#   # gets a (1 + 0.1*N) boost. Override per-call with `ml search --no-boost`.
-#   boost_factor: 0.1
-#
-# disabled_types:
-#   # Names of registered types (built-in or custom) that emit a deprecation
-#   # warning on write. Reads still succeed; the type stays in CLI choices so
-#   # peers in shared domains don't hard-fail. Use to retire a type gracefully.
-#   - failure
-#
-# custom_types:
-#   # Project-specific record types. Required + optional fields, dedup_key,
-#   # and a summary template. See README for the full schema.
-#   hypothesis:
-#     required: [statement, prediction]
-#     optional: [evidence_files]
-#     dedup_key: statement
-#     summary: "{statement}"   # tokens use single braces; {{statement}} also accepted
-#     # aliases: rename a field while still reading legacy on-disk records.
-#     # Map canonical (current) name → list of legacy names. At read time,
-#     # legacy fields are rewritten to canonical and dropped from the record.
-#     aliases:
-#       statement: [claim]
-#   # Inherit from a built-in type with extends:. Required/optional arrays
-#   # merge with the parent's (union); dedup_key, summary, compact, section_title,
-#   # extracts_files, and files_field override only when set, otherwise inherit.
-#   # Custom-from-custom is not supported in v1.
-#   adr:
-#     extends: decision
-#     required: [decision_status, deciders]   # added on top of decision's [title, rationale]
-#     summary: "{decision_status}: {title}"   # tokens must be declared fields (parent's included)
-#
-# hooks:
-#   # Lifecycle hook scripts. Each event maps to an ordered list of shell
-#   # commands. Mulch invokes each with the relevant payload as JSON on stdin.
-#   # Exit 0 = continue. Non-zero from a `pre-*` hook blocks the action; from
-#   # a `post-*` hook emits a warning. `pre-record`, `pre-prime`, and
-#   # `pre-compact` may mutate the payload by printing modified JSON on
-#   # stdout; `pre-prune` is block-or-allow only — its stdout is ignored.
-#   #
-#   # pre-record:    [./.mulch/hooks/scan-secrets.sh, ./.mulch/hooks/require-owner.sh]
-#   # post-record:   [./.mulch/hooks/post-to-slack.sh]
-#   # pre-prime:     [./.mulch/hooks/filter-by-team.sh]
-#   # pre-prune:     [./.mulch/hooks/digest-then-confirm.sh]
-#   # pre-compact:   [./.mulch/hooks/llm-summarize.sh]
-#
-# hook_settings:
-#   # Per-hook execution timeout in milliseconds. Default 5000.
-#   timeout_ms: 5000
-#
-# pi:
-#   # Configuration consumed by the in-tree pi-mulch extension
-#   # (extensions/pi/index.ts) when mulch is loaded inside the pi-coding-agent
-#   # runtime. The extension is a no-op outside pi regardless of these knobs.
-#   auto_prime: true            # session_start prime + systemPrompt injection
-#   scope_load:
-#     enabled: true             # fire `ml prime --files` on tool_call file events
-#     budget: 2000              # tokens per scope-load call
-#     debounce_ms: 500          # coalesce rapid events per file
-#   tools: true                 # register record_expertise / query_expertise tools
-#   commands: true              # register /ml:prime, /ml:status, /ml:doctor
-#   agent_end_widget: true      # show `ml learn` nudge widget on agent_end
