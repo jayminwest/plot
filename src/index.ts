@@ -8,6 +8,7 @@ export * from "./lock.ts";
 export * from "./plot-index.ts";
 export { eventSchema, plotSchema } from "./schemas.ts";
 export { SQLitePlotIndex } from "./sqlite-index.ts";
+export * from "./store.ts";
 export * from "./types.ts";
 export { VERSION } from "./version.ts";
 

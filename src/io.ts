@@ -111,25 +111,30 @@ export async function writeJsonAtomic(
 ): Promise<void> {
 	await mkdir(dirname(path), { recursive: true });
 	const content = stableStringify(value);
+	await withFileLock(path, () => atomicReplace(path, content), opts);
+}
 
-	await withFileLock(
-		path,
-		async () => {
-			const tmpPath = `${path}.tmp.${randomBytes(8).toString("hex")}`;
-			await writeFile(tmpPath, content, "utf-8");
-			try {
-				await rename(tmpPath, path);
-			} catch (err) {
-				try {
-					await unlink(tmpPath);
-				} catch {
-					/* best-effort cleanup */
-				}
-				throw err;
-			}
-		},
-		opts,
-	);
+// Variant for callers that already hold `withFileLock(path)`. Re-acquiring
+// the same lock would deadlock against ourselves; PlotStore uses this from
+// inside its outer transaction lock.
+export async function writeJsonAtomicWithinLock(path: string, value: unknown): Promise<void> {
+	await mkdir(dirname(path), { recursive: true });
+	await atomicReplace(path, stableStringify(value));
+}
+
+async function atomicReplace(path: string, content: string): Promise<void> {
+	const tmpPath = `${path}.tmp.${randomBytes(8).toString("hex")}`;
+	await writeFile(tmpPath, content, "utf-8");
+	try {
+		await rename(tmpPath, path);
+	} catch (err) {
+		try {
+			await unlink(tmpPath);
+		} catch {
+			/* best-effort cleanup */
+		}
+		throw err;
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +166,18 @@ export async function appendEvent(
 		},
 		opts,
 	);
+}
+
+// Variant for callers that already hold a coordinating lock (e.g. the
+// sibling JSON file's lock from a PlotStore transaction). Skips the
+// per-events-file lock to avoid blocking against ourselves.
+export async function appendEventWithinLock(path: string, event: unknown): Promise<void> {
+	await mkdir(dirname(path), { recursive: true });
+	const serialized = JSON.stringify(event);
+	if (serialized.includes("\n")) {
+		throw new Error("appendEventWithinLock: serialized event contains a newline");
+	}
+	await appendFile(path, `${serialized}\n`, "utf-8");
 }
 
 export interface ReadEventsOptions {
