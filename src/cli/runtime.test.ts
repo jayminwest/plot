@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { parseArgs, resolveActor } from "./runtime.ts";
+import type { CliEnv } from "./runtime.ts";
+import { parseArgs, resolveActor, resolvePlotId } from "./runtime.ts";
 
 describe("parseArgs", () => {
 	test("positional only", () => {
@@ -71,5 +72,35 @@ describe("resolveActor", () => {
 	test("invalid PLOT_ACTOR throws", () => {
 		const env = { get: (n: string) => (n === "PLOT_ACTOR" ? "not-an-actor" : undefined) };
 		expect(() => resolveActor(env)).toThrow(/not a valid actor/);
+	});
+});
+
+describe("resolvePlotId", () => {
+	const empty: CliEnv = { get: () => undefined };
+	const withEnvId = (id: string): CliEnv => ({
+		get: (n) => (n === "PLOT_ID" ? id : undefined),
+	});
+
+	test("positional wins over --plot and PLOT_ID", () => {
+		const args = parseArgs(["pl-11111111", "--plot", "pl-22222222"]);
+		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-11111111");
+	});
+
+	test("--plot wins over PLOT_ID", () => {
+		const args = parseArgs(["--plot", "pl-22222222"]);
+		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-22222222");
+	});
+
+	test("falls back to PLOT_ID env", () => {
+		const args = parseArgs([]);
+		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-33333333");
+	});
+
+	test("throws when no source provides an id", () => {
+		expect(() => resolvePlotId(parseArgs([]), empty)).toThrow(/PLOT_ID/);
+	});
+
+	test("rejects malformed Plot ID", () => {
+		expect(() => resolvePlotId(parseArgs(["not-a-plot"]), empty)).toThrow(/invalid Plot ID/);
 	});
 });

@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { type Actor, isActor, parseActor } from "../actor.ts";
+import { assertPlotId } from "../id.ts";
 import { SQLitePlotIndex } from "../sqlite-index.ts";
 import { PlotStore } from "../store.ts";
 
@@ -182,6 +183,33 @@ function gitUserHandle(): string | undefined {
 	const cleaned = local.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^[^A-Za-z0-9]+/, "");
 	if (!HANDLE_RE.test(cleaned)) return undefined;
 	return cleaned;
+}
+
+// ---------------------------------------------------------------------------
+// Plot ID resolution — SPEC §9.2.
+//
+// Agent-facing commands (`plot get`, `plot append`) discover the target Plot
+// from one of three sources, in priority order:
+//   1. positional `<id>` argument
+//   2. `--plot <id>` flag
+//   3. `PLOT_ID` env var (set by orchestrators on dispatch)
+// Returns the validated Plot ID or throws a usage-style Error.
+
+export function resolvePlotId(
+	args: ParsedArgs,
+	env: CliEnv,
+	opts: { positionalIndex?: number } = {},
+): string {
+	const idx = opts.positionalIndex ?? 0;
+	const positional = args.positional[idx];
+	const fromFlag = flagString(args, "plot");
+	const fromEnv = env.get("PLOT_ID");
+	const id = positional ?? fromFlag ?? fromEnv;
+	if (!id) {
+		throw new Error("no Plot ID — pass <id>, --plot <id>, or set PLOT_ID");
+	}
+	assertPlotId(id);
+	return id;
 }
 
 // ---------------------------------------------------------------------------

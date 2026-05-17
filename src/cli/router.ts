@@ -8,9 +8,11 @@
 
 import { VERSION } from "../version.ts";
 import { runAnswer } from "./commands/answer.ts";
+import { runAppend } from "./commands/append.ts";
 import { runAttach } from "./commands/attach.ts";
 import { runDetach } from "./commands/detach.ts";
 import { runEdit } from "./commands/edit.ts";
+import { runGet } from "./commands/get.ts";
 import { runInit } from "./commands/init.ts";
 import { runIntent } from "./commands/intent.ts";
 import { runList } from "./commands/list.ts";
@@ -30,6 +32,8 @@ const COMMANDS: Record<string, { run: CommandFn; summary: string }> = {
 	attach: { run: runAttach, summary: "attach a typed reference" },
 	detach: { run: runDetach, summary: "remove an attachment" },
 	answer: { run: runAnswer, summary: "answer an agent-posed question" },
+	get: { run: runGet, summary: "render a view (agent-facing, default JSON)" },
+	append: { run: runAppend, summary: "append an event (agent-facing)" },
 };
 
 export interface RunCliOptions {
@@ -95,6 +99,8 @@ function renderHelp(): string {
 	lines.push("Env:");
 	lines.push("  PLOT_DIR       Plot directory (default: .plot)");
 	lines.push("  PLOT_ACTOR     Override actor (e.g. user:jw, agent:claude:run-1)");
+	lines.push("  PLOT_ID        Default Plot ID for agent commands (`get`, `append`)");
+	lines.push("  PLOT_DEBUG     Set to 1 to print stack traces on error");
 	lines.push("");
 	return `${lines.join("\n")}\n`;
 }

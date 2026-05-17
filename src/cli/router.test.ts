@@ -43,9 +43,10 @@ function makeEnv(actor: string, overrides: Record<string, string> = {}): CliEnv 
 async function run(
 	actor: string,
 	argv: string[],
+	envOverrides: Record<string, string> = {},
 ): Promise<{ code: number; out: string; err: string }> {
 	const { io, out, err } = makeIO();
-	const code = await runCli({ argv, io, env: makeEnv(actor) });
+	const code = await runCli({ argv, io, env: makeEnv(actor, envOverrides) });
 	return { code, out: out.join(""), err: err.join("") };
 }
 
@@ -381,5 +382,234 @@ describe("edit", () => {
 		} finally {
 			await rmDir(editorDir, { recursive: true, force: true });
 		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Agent-facing CLI surface (§9.2)
+
+describe("get (agent-facing view query)", () => {
+	test("defaults to implementer view, JSON output, PLOT_ID env", async () => {
+		const id = (await run("user:jw", ["init", "Add OAuth"])).out.trim();
+		// Seed an agent event so the view has something to render.
+		const agent = "agent:claude:run-1";
+		await run(agent, ["append", "--event", "note", "--data", '{"text":"hello"}'], {
+			PLOT_ID: id,
+		});
+
+		const r = await run(agent, ["get"], { PLOT_ID: id });
+		expect(r.code).toBe(0);
+		const parsed = JSON.parse(r.out);
+		expect(parsed.id).toBe(id);
+		expect(parsed.view).toBe("implementer");
+		expect(parsed.intent.goal).toBe("");
+		expect(Array.isArray(parsed.events)).toBe(true);
+		expect(parsed.events.at(-1)?.type).toBe("note");
+	});
+
+	test("positional id overrides PLOT_ID env", async () => {
+		const a = (await run("user:jw", ["init", "A"])).out.trim();
+		const b = (await run("user:jw", ["init", "B"])).out.trim();
+		const r = await run("agent:claude:run-1", ["get", b], { PLOT_ID: a });
+		expect(r.code).toBe(0);
+		expect(JSON.parse(r.out).id).toBe(b);
+	});
+
+	test("--plot flag is honored", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["get", "--plot", id]);
+		expect(r.code).toBe(0);
+		expect(JSON.parse(r.out).id).toBe(id);
+	});
+
+	test("missing id with no PLOT_ID is a usage error", async () => {
+		const r = await run("agent:claude:run-1", ["get"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("PLOT_ID");
+	});
+
+	test("unknown view is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["get", id, "--view", "planner"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("unknown view");
+	});
+
+	test("--pretty renders text", async () => {
+		const id = (await run("user:jw", ["init", "Add OAuth"])).out.trim();
+		const r = await run("agent:claude:run-1", ["get", id, "--pretty"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain(`${id}  view=implementer`);
+		expect(r.out).toContain("Intent:");
+	});
+});
+
+describe("append (agent-facing event write)", () => {
+	test("agent appends decision_made and the event lands in the log", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run(
+			"agent:claude:run-1",
+			[
+				"append",
+				"--event",
+				"decision_made",
+				"--data",
+				JSON.stringify({ summary: "use OIDC", rationale: "spec-aligned" }),
+			],
+			{ PLOT_ID: id },
+		);
+		expect(r.code).toBe(0);
+		const parsed = JSON.parse(r.out);
+		expect(parsed.id).toBe(id);
+		expect(parsed.event.type).toBe("decision_made");
+		expect(parsed.event.actor).toBe("agent:claude:run-1");
+		expect(parsed.event.data).toEqual({ summary: "use OIDC", rationale: "spec-aligned" });
+
+		const show = await run("user:jw", ["show", id, "--json"]);
+		const showParsed = JSON.parse(show.out);
+		const last = showParsed.events.at(-1);
+		expect(last.type).toBe("decision_made");
+	});
+
+	test("intent_edited from an agent → ACL hint pointing at question_posed", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", [
+			"append",
+			id,
+			"--event",
+			"intent_edited",
+			"--data",
+			'{"field":"goal","value":"x"}',
+		]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("write-ACL");
+		expect(r.err).toContain("question_posed");
+	});
+
+	test("intent_edited from a user → CLI redirect to `plot intent`", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", [
+			"append",
+			id,
+			"--event",
+			"intent_edited",
+			"--data",
+			'{"field":"goal","value":"x"}',
+		]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("dedicated command");
+		expect(r.err).toContain("plot intent");
+	});
+
+	test("unknown event type is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["append", id, "--event", "bogus", "--data", "{}"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("unknown event type");
+	});
+
+	test("missing --event is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["append", id, "--data", "{}"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("--event");
+	});
+
+	test("missing --data is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["append", id, "--event", "note"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("--data");
+	});
+
+	test("invalid JSON data is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", [
+			"append",
+			id,
+			"--event",
+			"note",
+			"--data",
+			"{not json",
+		]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("not valid JSON");
+	});
+
+	test("non-object JSON data is rejected", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", [
+			"append",
+			id,
+			"--event",
+			"note",
+			"--data",
+			'["a","b"]',
+		]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("must be a JSON object");
+	});
+
+	test("missing id with no PLOT_ID is a usage error", async () => {
+		const r = await run("agent:claude:run-1", [
+			"append",
+			"--event",
+			"note",
+			"--data",
+			'{"text":"x"}',
+		]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("PLOT_ID");
+	});
+
+	test("user cannot emit decision_made (ACL)", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", [
+			"append",
+			id,
+			"--event",
+			"decision_made",
+			"--data",
+			'{"summary":"x"}',
+		]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("write-ACL");
+	});
+
+	test("note works for both users and agents", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const u = await run("user:jw", [
+			"append",
+			id,
+			"--event",
+			"note",
+			"--data",
+			'{"text":"by user"}',
+		]);
+		expect(u.code).toBe(0);
+		const a = await run("agent:claude:run-1", [
+			"append",
+			id,
+			"--event",
+			"note",
+			"--data",
+			'{"text":"by agent"}',
+		]);
+		expect(a.code).toBe(0);
+	});
+
+	test("--pretty emits a human-friendly summary line", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", [
+			"append",
+			id,
+			"--event",
+			"note",
+			"--data",
+			'{"text":"hi"}',
+			"--pretty",
+		]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain(`appended note to ${id}`);
 	});
 });
