@@ -613,3 +613,165 @@ describe("append (agent-facing event write)", () => {
 		expect(r.out).toContain(`appended note to ${id}`);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Operational CLI surface (§9.3)
+
+describe("rebuild-index", () => {
+	test("rebuilds with no plots reports 0", async () => {
+		const r = await run("user:jw", ["rebuild-index"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain("rebuilt index for 0 plots");
+	});
+
+	test("rebuilds after deleting the SQLite cache and surfaces existing plots", async () => {
+		const a = (await run("user:jw", ["init", "A"])).out.trim();
+		const b = (await run("user:jw", ["init", "B"])).out.trim();
+		const { rm: rmFile } = await import("node:fs/promises");
+		// Wipe the index file (and its WAL sidecars) — listed via plot rebuild.
+		for (const suffix of ["", "-wal", "-shm"]) {
+			await rmFile(join(dir, `.index.db${suffix}`), { force: true });
+		}
+		const r = await run("user:jw", ["rebuild-index", "--json"]);
+		expect(r.code).toBe(0);
+		const parsed = JSON.parse(r.out);
+		expect(parsed.rebuilt).toBe(2);
+		expect(parsed.dir).toBe(dir);
+
+		// List should now find both via the rebuilt index.
+		const list = await run("user:jw", ["list"]);
+		expect(list.out).toContain(a);
+		expect(list.out).toContain(b);
+	});
+});
+
+describe("sync", () => {
+	// Stages and commits in a throwaway git repo to keep the user's HEAD safe.
+	let repoDir: string;
+	let plotDir: string;
+	beforeEach(async () => {
+		const { mkdir, writeFile: wf } = await import("node:fs/promises");
+		repoDir = await mkdtemp(join(tmpdir(), "plot-sync-repo-"));
+		plotDir = join(repoDir, ".plot");
+		await mkdir(plotDir, { recursive: true });
+		// Minimal git repo with identity so commits succeed in CI.
+		const { spawnSync } = await import("node:child_process");
+		spawnSync("git", ["init", "-q", "-b", "main"], { cwd: repoDir });
+		spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: repoDir });
+		spawnSync("git", ["config", "user.name", "Tester"], { cwd: repoDir });
+		spawnSync("git", ["config", "commit.gpgsign", "false"], { cwd: repoDir });
+		await wf(join(repoDir, "README"), "seed\n");
+		spawnSync("git", ["add", "README"], { cwd: repoDir });
+		spawnSync("git", ["commit", "-q", "-m", "init"], { cwd: repoDir });
+	});
+	afterEach(async () => {
+		await rm(repoDir, { recursive: true, force: true });
+	});
+
+	async function runInRepo(argv: string[]): Promise<{ code: number; out: string; err: string }> {
+		const { io, out, err } = makeIO();
+		const env: CliEnv = {
+			get: (n) => {
+				if (n === "PLOT_DIR") return plotDir;
+				if (n === "PLOT_ACTOR") return "user:jw";
+				return undefined;
+			},
+		};
+		// Run from inside the temp repo so `git` operates on it.
+		const cwd = process.cwd();
+		process.chdir(repoDir);
+		try {
+			const code = await runCli({ argv, io, env });
+			return { code, out: out.join(""), err: err.join("") };
+		} finally {
+			process.chdir(cwd);
+		}
+	}
+
+	test("with no plots, reports nothing to sync and exits 0", async () => {
+		const r = await runInRepo(["sync"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain("no plots");
+	});
+
+	test("stages + commits newly-created plot files", async () => {
+		const init = await runInRepo(["init", "OAuth"]);
+		const id = init.out.trim();
+		expect(id).toMatch(/^pl-[a-z0-9]{8}$/);
+
+		const r = await runInRepo(["sync", "-m", "plot: add OAuth"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain("committed");
+
+		const { spawnSync } = await import("node:child_process");
+		const log = spawnSync("git", ["log", "--name-only", "--pretty=%s", "-1"], {
+			cwd: repoDir,
+			encoding: "utf-8",
+		});
+		expect(log.stdout).toContain("plot: add OAuth");
+		expect(log.stdout).toContain(`.plot/${id}.json`);
+		expect(log.stdout).toContain(`.plot/${id}.events.jsonl`);
+		expect(log.stdout).not.toContain(".index.db");
+	});
+
+	test("second sync with nothing changed exits 0 with 'nothing to commit'", async () => {
+		await runInRepo(["init", "X"]);
+		const first = await runInRepo(["sync"]);
+		expect(first.code).toBe(0);
+		const second = await runInRepo(["sync"]);
+		expect(second.code).toBe(0);
+		expect(second.out).toContain("nothing to commit");
+	});
+});
+
+describe("doctor", () => {
+	test("clean plot reports ok and exits 0", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["doctor"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain(`${id}  ok`);
+		expect(r.out).toContain("0 errors");
+	});
+
+	test("orphan events file is flagged as a warning", async () => {
+		const { writeFile: wf } = await import("node:fs/promises");
+		await wf(
+			join(dir, "pl-deadbeef.events.jsonl"),
+			`${JSON.stringify({ type: "plot_created", actor: "user:jw", at: "2026-01-01T00:00:00Z", data: { name: "ghost" } })}\n`,
+			"utf-8",
+		);
+		const r = await run("user:jw", ["doctor", "--json"]);
+		expect(r.code).toBe(0);
+		const parsed = JSON.parse(r.out);
+		expect(parsed.orphans).toHaveLength(1);
+		expect(parsed.orphans[0].code).toBe("orphan_events");
+		expect(parsed.warningCount).toBe(1);
+		expect(parsed.errorCount).toBe(0);
+	});
+
+	test("status drift between JSON and event log is an error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		// Hand-edit the JSON file to claim status `active` without emitting the
+		// matching event. Mimics what corrupted state looks like on disk.
+		const { readFile: rf, writeFile: wf } = await import("node:fs/promises");
+		const raw = await rf(join(dir, `${id}.json`), "utf-8");
+		const obj = JSON.parse(raw);
+		obj.status = "active";
+		await wf(join(dir, `${id}.json`), `${JSON.stringify(obj, null, 2)}\n`, "utf-8");
+
+		const r = await run("user:jw", ["doctor"]);
+		expect(r.code).toBe(1);
+		expect(r.out).toContain("status_drift");
+	});
+
+	test("malformed events file surfaces events_unreadable", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { appendFile } = await import("node:fs/promises");
+		await appendFile(join(dir, `${id}.events.jsonl`), "{not json\n", "utf-8");
+		const r = await run("user:jw", ["doctor", "--json"]);
+		expect(r.code).toBe(1);
+		const parsed = JSON.parse(r.out);
+		const plot = parsed.plots.find((p: { id: string }) => p.id === id);
+		expect(plot.findings.some((f: { code: string }) => f.code === "events_unreadable")).toBe(true);
+	});
+});

@@ -11,13 +11,16 @@ import { runAnswer } from "./commands/answer.ts";
 import { runAppend } from "./commands/append.ts";
 import { runAttach } from "./commands/attach.ts";
 import { runDetach } from "./commands/detach.ts";
+import { runDoctor } from "./commands/doctor.ts";
 import { runEdit } from "./commands/edit.ts";
 import { runGet } from "./commands/get.ts";
 import { runInit } from "./commands/init.ts";
 import { runIntent } from "./commands/intent.ts";
 import { runList } from "./commands/list.ts";
+import { runRebuildIndex } from "./commands/rebuild-index.ts";
 import { runShow } from "./commands/show.ts";
 import { runStatus } from "./commands/status.ts";
+import { runSync } from "./commands/sync.ts";
 import type { CliContext, CliEnv, CliIO } from "./runtime.ts";
 
 type CommandFn = (ctx: CliContext) => Promise<number>;
@@ -34,6 +37,9 @@ const COMMANDS: Record<string, { run: CommandFn; summary: string }> = {
 	answer: { run: runAnswer, summary: "answer an agent-posed question" },
 	get: { run: runGet, summary: "render a view (agent-facing, default JSON)" },
 	append: { run: runAppend, summary: "append an event (agent-facing)" },
+	"rebuild-index": { run: runRebuildIndex, summary: "wipe and regenerate the SQLite cache" },
+	sync: { run: runSync, summary: "stage + commit .plot/ source files" },
+	doctor: { run: runDoctor, summary: "check file integrity + event log replay" },
 };
 
 export interface RunCliOptions {
