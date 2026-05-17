@@ -3,6 +3,8 @@ import { VERSION } from "./version.ts";
 
 export * from "./actor.ts";
 export * from "./id.ts";
+export * from "./io.ts";
+export * from "./lock.ts";
 export { eventSchema, plotSchema } from "./schemas.ts";
 export * from "./types.ts";
 export { VERSION } from "./version.ts";
