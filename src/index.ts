@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { VERSION } from "./version.ts";
+import { runCli } from "./cli/router.ts";
+import { processEnv, processIO } from "./cli/runtime.ts";
 
 export * from "./acl.ts";
 export * from "./actor.ts";
@@ -16,15 +17,10 @@ export { VERSION } from "./version.ts";
 export * from "./views.ts";
 
 if (import.meta.main) {
-	const arg = Bun.argv[2];
-
-	if (arg === "--version" || arg === "-v") {
-		console.log(VERSION);
-		process.exit(0);
-	}
-
-	console.log(`plot ${VERSION}`);
-	console.log("");
-	console.log("Plot is in design phase — see SPEC.md. CLI is not yet implemented.");
-	process.exit(0);
+	const exit = await runCli({
+		argv: Bun.argv.slice(2),
+		io: processIO(),
+		env: processEnv(),
+	});
+	process.exit(exit);
 }

@@ -1,0 +1,385 @@
+// End-to-end tests for the human-facing CLI surface (§9.1).
+//
+// Each test drives the router with a captured IO/env pair against a temp
+// PLOT_DIR. PLOT_ACTOR is set so git config doesn't matter; otherwise the
+// router would fall back to spawnSync git in test environments.
+
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { runCli } from "./router.ts";
+import type { CliEnv, CliIO } from "./runtime.ts";
+
+let dir: string;
+
+beforeEach(async () => {
+	dir = await mkdtemp(join(tmpdir(), "plot-cli-"));
+});
+
+afterEach(async () => {
+	await rm(dir, { recursive: true, force: true });
+});
+
+function makeIO() {
+	const out: string[] = [];
+	const err: string[] = [];
+	const io: CliIO = {
+		out: (t) => out.push(t),
+		err: (t) => err.push(t),
+	};
+	return { io, out, err };
+}
+
+function makeEnv(actor: string, overrides: Record<string, string> = {}): CliEnv {
+	const map: Record<string, string> = {
+		PLOT_DIR: dir,
+		PLOT_ACTOR: actor,
+		...overrides,
+	};
+	return { get: (n) => map[n] };
+}
+
+async function run(
+	actor: string,
+	argv: string[],
+): Promise<{ code: number; out: string; err: string }> {
+	const { io, out, err } = makeIO();
+	const code = await runCli({ argv, io, env: makeEnv(actor) });
+	return { code, out: out.join(""), err: err.join("") };
+}
+
+describe("router help + dispatch", () => {
+	test("--help prints command list", async () => {
+		const r = await run("user:jw", ["--help"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain("plot");
+		expect(r.out).toContain("init");
+		expect(r.out).toContain("answer");
+	});
+
+	test("--version prints version", async () => {
+		const r = await run("user:jw", ["--version"]);
+		expect(r.code).toBe(0);
+		expect(r.out.trim()).toMatch(/^\d+\.\d+\.\d+/);
+	});
+
+	test("unknown command exits 2 with help", async () => {
+		const r = await run("user:jw", ["nope"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("unknown command");
+	});
+
+	test("PLOT_DEBUG=1 emits stack traces", async () => {
+		const { io, err } = makeIO();
+		const env: CliEnv = {
+			get: (n) =>
+				n === "PLOT_DIR"
+					? dir
+					: n === "PLOT_ACTOR"
+						? "user:jw"
+						: n === "PLOT_DEBUG"
+							? "1"
+							: undefined,
+		};
+		const code = await runCli({ argv: ["show", "pl-aaaaaaaa"], io, env });
+		expect(code).toBe(1);
+		const out = err.join("");
+		expect(out).toContain("not found");
+		// stack line from Error
+		expect(out).toMatch(/at\s+/);
+	});
+});
+
+describe("init / list / show", () => {
+	test("init returns an id, list surfaces it, show renders it", async () => {
+		const init = await run("user:jw", ["init", "Add OAuth"]);
+		expect(init.code).toBe(0);
+		const id = init.out.trim();
+		expect(id).toMatch(/^pl-[a-z0-9]{8}$/);
+
+		const list = await run("user:jw", ["list"]);
+		expect(list.code).toBe(0);
+		expect(list.out).toContain(id);
+		expect(list.out).toContain("drafting");
+		expect(list.out).toContain("Add OAuth");
+
+		const show = await run("user:jw", ["show", id]);
+		expect(show.code).toBe(0);
+		expect(show.out).toContain(`${id}  drafting`);
+		expect(show.out).toContain("Name:     Add OAuth");
+	});
+
+	test("init --json emits id+name as JSON", async () => {
+		const r = await run("user:jw", ["init", "X", "--json"]);
+		expect(r.code).toBe(0);
+		const parsed = JSON.parse(r.out);
+		expect(parsed.name).toBe("X");
+		expect(parsed.id).toMatch(/^pl-[a-z0-9]{8}$/);
+	});
+
+	test("init usage error when name missing", async () => {
+		const r = await run("user:jw", ["init"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("usage");
+	});
+
+	test("list with no plots prints 'no plots'", async () => {
+		const r = await run("user:jw", ["list"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toBe("no plots\n");
+	});
+
+	test("show with missing id is a usage error", async () => {
+		const r = await run("user:jw", ["show"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("usage");
+	});
+
+	test("show on nonexistent plot exits 1 with message", async () => {
+		const r = await run("user:jw", ["show", "pl-aaaaaaaa"]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("not found");
+	});
+});
+
+describe("intent", () => {
+	test("sets goal and replaces non_goals", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", [
+			"intent",
+			id,
+			"--goal",
+			"Replace email auth",
+			"--non-goal",
+			"migrate accounts",
+			"--non-goal",
+			"add Google",
+		]);
+		expect(r.code).toBe(0);
+
+		const show = await run("user:jw", ["show", id, "--json"]);
+		const parsed = JSON.parse(show.out);
+		expect(parsed.plot.intent.goal).toBe("Replace email auth");
+		expect(parsed.plot.intent.non_goals).toEqual(["migrate accounts", "add Google"]);
+	});
+
+	test("no flags is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["intent", id]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("nothing to update");
+	});
+});
+
+describe("status", () => {
+	test("drafting → ready transition", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["status", id, "ready"]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain(`${id} → ready`);
+	});
+
+	test("rejects invalid status", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["status", id, "frozen"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("invalid status");
+	});
+
+	test("agents cannot transition status (ACL)", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("agent:claude:run-1", ["status", id, "ready"]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("write-ACL");
+	});
+});
+
+describe("attach / detach", () => {
+	test("attach with type:ref and --role then detach by attachment id", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const attach = await run("user:jw", [
+			"attach",
+			id,
+			"seeds_issue:sd-123",
+			"--role",
+			"tracks",
+			"--json",
+		]);
+		expect(attach.code).toBe(0);
+		const a = JSON.parse(attach.out);
+		expect(a.id).toBe("att-001");
+		expect(a.type).toBe("seeds_issue");
+		expect(a.ref).toBe("sd-123");
+		expect(a.role).toBe("tracks");
+
+		const detach = await run("user:jw", ["detach", id, "att-001"]);
+		expect(detach.code).toBe(0);
+		expect(detach.out).toContain("removed att-001");
+	});
+
+	test("attach rejects unknown type", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["attach", id, "nope:ref", "--role", "tracks"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("unknown attachment type");
+	});
+
+	test("attach requires --role", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["attach", id, "seeds_issue:sd-1"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("--role is required");
+	});
+
+	test("attach malformed target is a usage error", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["attach", id, "no-colon", "--role", "tracks"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("expected <type>:<ref>");
+	});
+
+	test("agents cannot detach (ACL)", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		await run("user:jw", ["attach", id, "seeds_issue:sd-1", "--role", "tracks"]);
+		const r = await run("agent:claude:run-1", ["detach", id, "att-001"]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("write-ACL");
+	});
+});
+
+describe("answer", () => {
+	test("looks up q-1 from event log and appends question_answered", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		// Stage a question_posed event via the agent-facing append path on the
+		// library directly (CLI for §9.2 is a separate seed). The CLI under
+		// test still has to look this up at read time.
+		const { PlotStore } = await import("../store.ts");
+		const { SQLitePlotIndex } = await import("../sqlite-index.ts");
+		const idx = new SQLitePlotIndex(":memory:");
+		const agentStore = new PlotStore({
+			dir,
+			index: idx,
+			actor: { kind: "agent", name: "claude", runId: "run-1", raw: "agent:claude:run-1" },
+		});
+		await agentStore.get(id).append({
+			type: "question_posed",
+			data: { text: "Migrate existing accounts?", blocking: true },
+		});
+		idx.close();
+
+		const ans = await run("user:jw", ["answer", id, "q-1", "no — hard cut"]);
+		expect(ans.code).toBe(0);
+		expect(ans.out).toContain("answered q-1");
+
+		const show = await run("user:jw", ["show", id, "--json"]);
+		const parsed = JSON.parse(show.out);
+		const last = parsed.events[parsed.events.length - 1];
+		expect(last.type).toBe("question_answered");
+		expect(last.data).toEqual({ question_id: "q-1", text: "no — hard cut" });
+	});
+
+	test("rejects malformed question id", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["answer", id, "bogus", "x"]);
+		expect(r.code).toBe(2);
+		expect(r.err).toContain("question id must look like q-1");
+	});
+
+	test("missing question id exits 1 with message", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const r = await run("user:jw", ["answer", id, "q-5", "x"]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("no question q-5");
+	});
+
+	test("agents cannot answer (ACL)", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { PlotStore } = await import("../store.ts");
+		const { SQLitePlotIndex } = await import("../sqlite-index.ts");
+		const idx = new SQLitePlotIndex(":memory:");
+		const agentStore = new PlotStore({
+			dir,
+			index: idx,
+			actor: { kind: "agent", name: "claude", runId: "run-1", raw: "agent:claude:run-1" },
+		});
+		await agentStore.get(id).append({
+			type: "question_posed",
+			data: { text: "?", blocking: false },
+		});
+		idx.close();
+
+		const r = await run("agent:claude:run-1", ["answer", id, "q-1", "x"]);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain("write-ACL");
+	});
+});
+
+describe("edit", () => {
+	test("uses EDITOR script to non-interactively rewrite intent", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { writeFile, mkdtemp, rm: rmDir } = await import("node:fs/promises");
+		const { chmodSync } = await import("node:fs");
+		const editorDir = await mkdtemp(join(tmpdir(), "plot-editor-"));
+		const editorScript = join(editorDir, "fake-editor.sh");
+		// Editor that replaces the buffer with a new intent JSON; bash is
+		// available on every test host (macOS + Linux dev environments).
+		await writeFile(
+			editorScript,
+			`#!/usr/bin/env bash\ncat > "$1" <<'JSON'\n{"goal":"rewritten","non_goals":[],"constraints":["c1"],"success_criteria":[]}\nJSON\n`,
+			"utf-8",
+		);
+		chmodSync(editorScript, 0o755);
+
+		try {
+			const { io, out, err } = makeIO();
+			const env: CliEnv = {
+				get: (n) => {
+					if (n === "PLOT_DIR") return dir;
+					if (n === "PLOT_ACTOR") return "user:jw";
+					if (n === "EDITOR") return editorScript;
+					return undefined;
+				},
+			};
+			const code = await runCli({ argv: ["edit", id], io, env });
+			expect(code).toBe(0);
+			expect(out.join("")).toContain("updated intent");
+			expect(err.join("")).toBe("");
+		} finally {
+			await rmDir(editorDir, { recursive: true, force: true });
+		}
+
+		const show = await run("user:jw", ["show", id, "--json"]);
+		const parsed = JSON.parse(show.out);
+		expect(parsed.plot.intent.goal).toBe("rewritten");
+		expect(parsed.plot.intent.constraints).toEqual(["c1"]);
+	});
+
+	test("no-change edit returns 'no changes'", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { writeFile, mkdtemp, rm: rmDir } = await import("node:fs/promises");
+		const { chmodSync } = await import("node:fs");
+		const editorDir = await mkdtemp(join(tmpdir(), "plot-editor-"));
+		const editorScript = join(editorDir, "noop-editor.sh");
+		// `true` exits 0 without modifying the file
+		await writeFile(editorScript, "#!/usr/bin/env bash\nexit 0\n", "utf-8");
+		chmodSync(editorScript, 0o755);
+
+		try {
+			const { io, out } = makeIO();
+			const env: CliEnv = {
+				get: (n) => {
+					if (n === "PLOT_DIR") return dir;
+					if (n === "PLOT_ACTOR") return "user:jw";
+					if (n === "EDITOR") return editorScript;
+					return undefined;
+				},
+			};
+			const code = await runCli({ argv: ["edit", id], io, env });
+			expect(code).toBe(0);
+			expect(out.join("")).toContain("no changes");
+		} finally {
+			await rmDir(editorDir, { recursive: true, force: true });
+		}
+	});
+});
