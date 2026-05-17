@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Actor } from "./actor.ts";
 import { isPlotId } from "./id.ts";
 import { plotEventsPath, plotJsonPath, readJson } from "./io.ts";
+import type { Migration } from "./migrations.ts";
 import { SQLitePlotIndex } from "./sqlite-index.ts";
 import { PlotStore } from "./store.ts";
 import type { Plot, PlotEvent } from "./types.ts";
@@ -462,6 +463,108 @@ describe("on-disk format", () => {
 		const handle = await store.create({ name: "Plot" });
 		const onDisk = await readJson<Plot>(plotJsonPath(dir, handle.id));
 		expect(onDisk).toEqual(await handle.read());
+	});
+});
+
+describe("schema versioning (SPEC §7)", () => {
+	test("rejects reading a Plot written by a newer schema", async () => {
+		const store = makeStore();
+		const handle = await store.create({ name: "X" });
+		// Tamper the on-disk file to a future schema version.
+		const path = plotJsonPath(dir, handle.id);
+		const onDisk = await readJson<Plot>(path);
+		await writeFile(path, JSON.stringify({ ...onDisk, schema_version: 999 }), "utf-8");
+		expect(handle.read()).rejects.toThrow(/newer Plot/);
+	});
+
+	test("migrate-on-read upgrades a synthetic legacy fixture without rewriting the file", async () => {
+		// Write a v0 Plot directly to disk, then read it through a PlotStore
+		// configured with a v0->v1 migration. PlotHandle.read should return the
+		// upgraded shape; the on-disk file should remain at v0 since no edit
+		// triggered a write-back.
+		const id = "pl-legacy01";
+		const path = plotJsonPath(dir, id);
+		const legacy = {
+			schema_version: 0,
+			id,
+			name: "Legacy",
+			status: "drafting",
+			created_at: "2026-05-17T10:00:00.000Z",
+			updated_at: "2026-05-17T10:00:00.000Z",
+			intent: { goal: "g", non_goals: [], constraints: [] },
+			attachments: [],
+		};
+		await writeFile(path, JSON.stringify(legacy), "utf-8");
+
+		const v0to1: Migration = {
+			from: 0,
+			to: 1,
+			migrate: (raw) => ({
+				...raw,
+				intent: {
+					...(raw.intent as Record<string, unknown>),
+					success_criteria: [],
+				},
+			}),
+		};
+		const store = new PlotStore({
+			dir,
+			index,
+			actor: USER,
+			now: () => clockNow,
+			migrations: [v0to1],
+		});
+
+		const upgraded = await store.get(id).read();
+		expect(upgraded.schema_version).toBe(1);
+		expect(upgraded.intent.success_criteria).toEqual([]);
+		expect(upgraded.intent.goal).toBe("g");
+
+		// On disk is still v0 — write-back is deferred until something edits.
+		const rawAfter = JSON.parse(await readFile(path, "utf-8")) as { schema_version: number };
+		expect(rawAfter.schema_version).toBe(0);
+	});
+
+	test("editing a migrated Plot writes the upgraded shape back at SCHEMA_VERSION", async () => {
+		const id = "pl-legacy02";
+		const path = plotJsonPath(dir, id);
+		const legacy = {
+			schema_version: 0,
+			id,
+			name: "Legacy",
+			status: "drafting",
+			created_at: "2026-05-17T10:00:00.000Z",
+			updated_at: "2026-05-17T10:00:00.000Z",
+			intent: { goal: "g", non_goals: [], constraints: [] },
+			attachments: [],
+		};
+		await writeFile(path, JSON.stringify(legacy), "utf-8");
+
+		const v0to1: Migration = {
+			from: 0,
+			to: 1,
+			migrate: (raw) => ({
+				...raw,
+				intent: {
+					...(raw.intent as Record<string, unknown>),
+					success_criteria: [],
+				},
+			}),
+		};
+		const store = new PlotStore({
+			dir,
+			index,
+			actor: USER,
+			now: () => clockNow,
+			migrations: [v0to1],
+		});
+		advanceClock(1000);
+		await store.get(id).editIntent({ goal: "g2" });
+
+		const onDisk = JSON.parse(await readFile(path, "utf-8")) as Plot;
+		expect(onDisk.schema_version).toBe(1);
+		expect(onDisk.intent.success_criteria).toEqual([]);
+		expect(onDisk.intent.goal).toBe("g2");
 	});
 });
 

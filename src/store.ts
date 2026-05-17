@@ -21,6 +21,7 @@ import {
 	writeJsonAtomicWithinLock,
 } from "./io.ts";
 import { withFileLock } from "./lock.ts";
+import { type Migration, migratePlot } from "./migrations.ts";
 import type { PlotIndex } from "./plot-index.ts";
 import {
 	type Attachment,
@@ -42,6 +43,10 @@ export interface PlotStoreOptions {
 	actor: Actor;
 	// Injectable clock for deterministic tests. Defaults to system time.
 	now?: () => Date;
+	// Override the migration registry used on read. Defaults to
+	// DEFAULT_MIGRATIONS from ./migrations.ts. Tests inject synthetic
+	// legacy-fixture migrations through this.
+	migrations?: readonly Migration[];
 }
 
 export interface CreatePlotInput {
@@ -75,6 +80,7 @@ export class PlotStore {
 	readonly dir: string;
 	readonly index: PlotIndex;
 	readonly actor: Actor;
+	readonly migrations?: readonly Migration[];
 	private readonly clock: () => Date;
 
 	constructor(opts: PlotStoreOptions) {
@@ -82,6 +88,7 @@ export class PlotStore {
 		this.index = opts.index;
 		this.actor = opts.actor;
 		this.clock = opts.now ?? (() => new Date());
+		this.migrations = opts.migrations;
 	}
 
 	async create(input: CreatePlotInput): Promise<PlotHandle> {
@@ -149,7 +156,8 @@ export class PlotStore {
 		await withFileLock(jsonPath, async () => {
 			let current: Plot;
 			try {
-				current = await readJson<Plot>(jsonPath);
+				const raw = await readJson<unknown>(jsonPath);
+				current = migratePlot(raw, { migrations: this.migrations });
 			} catch (err) {
 				if ((err as NodeJS.ErrnoException).code === "ENOENT") {
 					throw new Error(`Plot ${id} not found at ${jsonPath}`);
@@ -189,7 +197,8 @@ export class PlotHandle {
 
 	async read(): Promise<Plot> {
 		try {
-			return await readJson<Plot>(plotJsonPath(this.store.dir, this.id));
+			const raw = await readJson<unknown>(plotJsonPath(this.store.dir, this.id));
+			return migratePlot(raw, { migrations: this.store.migrations });
 		} catch (err) {
 			if ((err as NodeJS.ErrnoException).code === "ENOENT") {
 				throw new Error(`Plot ${this.id} not found`);
@@ -328,9 +337,11 @@ export class PlotHandle {
 		const actorStr = formatActor(this.store.actor);
 		let event!: PlotEvent;
 		await withFileLock(jsonPath, async () => {
-			// Confirm the Plot exists; appending to a missing Plot is a bug.
+			// Confirm the Plot exists and is at a supported schema_version;
+			// appending to a missing or future-version Plot is a bug.
 			try {
-				await readJson<Plot>(jsonPath);
+				const raw = await readJson<unknown>(jsonPath);
+				migratePlot(raw, { migrations: this.store.migrations });
 			} catch (err) {
 				if ((err as NodeJS.ErrnoException).code === "ENOENT") {
 					throw new Error(`Plot ${this.id} not found`);
