@@ -2,6 +2,7 @@ version: '1'
 domains:
   data-model: {}
   file-io: {}
+  index: {}
 governance:
   max_entries: 100
   warn_entries: 150
