@@ -32,7 +32,7 @@ A Plot is the place where intent meets execution: humans author it, agents query
 | Canopy | Prompt template  | "This is how we ask"                  |
 | **Plot** | **Coordination object** | **"This is what's happening on X right now, and who/what is involved"** |
 
-A Plot references seeds, mulch, canopy prompts, agent runs, and PRs — it does not replace any of them. Overstory and Warren orchestrate runs against Plots. Sapling and Claude-code prime context from Plots and write events back. The data plane is unchanged; Plot adds the coordination layer.
+A Plot references seeds, mulch, canopy prompts, agent runs, and PRs — it does not replace any of them. Greenhouse can create Plots when triaged issues arrive. Overstory and Warren orchestrate runs against Plots. Sapling and Claude-code prime context from Plots and write events back. The data plane is unchanged; Plot adds the coordination layer.
 
 ---
 
@@ -380,10 +380,13 @@ Warren is the primary V1 consumer of Plot. Warren dispatches agent runs from Plo
 ### 13.5 Overstory
 Overstory orchestrates locally; analogous to warren's role but for tmux + git-worktree workflows. Overstory consumes Plot the same way warren does — dispatches runs from Plots, propagates events back.
 
-### 13.6 Sapling, claude-code
+### 13.6 Greenhouse
+The autonomous-loop daemon. Greenhouse can create Plots when triaged issues arrive on GitHub: poll → create Plot with intent populated from the GitHub issue → set status `ready` → dispatch via warren or overstory.
+
+### 13.7 Sapling, claude-code
 Coding agents that run inside Plots. They prime from `plot get --view implementer`, emit `decision_made` / `question_posed` / `artifact_produced` events back, never touch intent.
 
-### 13.7 Burrow
+### 13.8 Burrow
 Sandbox primitive. Unaffected by Plot — Plot is a coordination layer above the runtime substrate.
 
 ---
