@@ -92,6 +92,8 @@ function summarizeEventData(ev: PlotEvent): string {
 			return ev.data.id;
 		case "run_dispatched":
 			return ev.data.run_id;
+		case "plan_run_dispatched":
+			return `${ev.data.plan_run_id} plan=${ev.data.plan_id} children=${ev.data.children_count}`;
 		case "decision_made":
 			return ev.data.summary;
 		case "question_posed":

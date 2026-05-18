@@ -34,6 +34,7 @@ export const PLOT_EVENT_TYPES = [
 	"attachment_added",
 	"attachment_removed",
 	"run_dispatched",
+	"plan_run_dispatched",
 	"decision_made",
 	"question_posed",
 	"question_answered",
@@ -96,6 +97,10 @@ export type RunDispatchedEvent = EventBase<
 	"run_dispatched",
 	{ run_id: string; from_seed?: string; [key: string]: unknown }
 >;
+export type PlanRunDispatchedEvent = EventBase<
+	"plan_run_dispatched",
+	{ plan_run_id: string; plan_id: string; children_count: number; [key: string]: unknown }
+>;
 export type DecisionMadeEvent = EventBase<"decision_made", { summary: string; rationale?: string }>;
 export type QuestionPosedEvent = EventBase<"question_posed", { text: string; blocking: boolean }>;
 export type QuestionAnsweredEvent = EventBase<
@@ -115,6 +120,7 @@ export type PlotEvent =
 	| AttachmentAddedEvent
 	| AttachmentRemovedEvent
 	| RunDispatchedEvent
+	| PlanRunDispatchedEvent
 	| DecisionMadeEvent
 	| QuestionPosedEvent
 	| QuestionAnsweredEvent

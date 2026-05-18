@@ -5,3 +5,8 @@ node_modules/
 .plot/.index.db
 .plot/.index.db-wal
 .plot/.index.db-shm
+
+# Agent harness artifacts
+.bun/
+.canopy/
+.pi/

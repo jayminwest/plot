@@ -61,6 +61,7 @@ describe("constants match SPEC", () => {
 				"attachment_added",
 				"attachment_removed",
 				"run_dispatched",
+				"plan_run_dispatched",
 				"decision_made",
 				"question_posed",
 				"question_answered",

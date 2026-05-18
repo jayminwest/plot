@@ -19,6 +19,7 @@ export const EVENT_ACL: Record<PlotEventType, readonly ActorKind[]> = {
 	attachment_removed: ["user"],
 	question_answered: ["user"],
 	run_dispatched: ["user", "agent"],
+	plan_run_dispatched: ["user", "agent"],
 	decision_made: ["agent"],
 	question_posed: ["agent"],
 	artifact_produced: ["agent"],

@@ -411,7 +411,7 @@ describe("write-ACL (SPEC §6)", () => {
 		).rejects.toThrow(/write-ACL.*artifact_produced/);
 	});
 
-	test("agent can append decision_made / question_posed / artifact_produced / note / run_dispatched", async () => {
+	test("agent can append decision_made / question_posed / artifact_produced / note / run_dispatched / plan_run_dispatched", async () => {
 		const userStore = makeStore(USER);
 		const handle = await userStore.create({ name: "X" });
 		const agentHandle = makeStore(AGENT).get(handle.id);
@@ -420,9 +420,13 @@ describe("write-ACL (SPEC §6)", () => {
 		await agentHandle.append({ type: "artifact_produced", data: { type: "file", ref: "r" } });
 		await agentHandle.append({ type: "note", data: { text: "n" } });
 		await agentHandle.append({ type: "run_dispatched", data: { run_id: "run-1" } });
+		await agentHandle.append({
+			type: "plan_run_dispatched",
+			data: { plan_run_id: "prun-1", plan_id: "pl-abcd", children_count: 3 },
+		});
 		const events = await readEventLines(handle.id);
-		// 1 plot_created + 5 appends
-		expect(events).toHaveLength(6);
+		// 1 plot_created + 6 appends
+		expect(events).toHaveLength(7);
 	});
 
 	test("agent attach is allowed (attachment_added is anyone)", async () => {

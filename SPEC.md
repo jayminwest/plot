@@ -146,13 +146,14 @@ One JSON object per line, append-only, never rewritten:
 | `attachment_added` | Anyone | Attachment added |
 | `attachment_removed` | Humans only | Attachment removed |
 | `run_dispatched` | Orchestrators (warren, etc.) | Agent run started from this Plot |
+| `plan_run_dispatched` | Orchestrators (warren, etc.) | Multi-child plan run started from this Plot (parent of a fan-out of `run_dispatched` events) |
 | `decision_made` | Agents | Agent recorded a design decision |
 | `question_posed` | Agents | Agent surfaced a blocking or non-blocking question |
 | `question_answered` | Humans only | Human answered an agent's question |
 | `artifact_produced` | Agents | Agent produced an artifact (PR, file, etc.) |
 | `note` | Anyone | Free-form annotation, body in `data.text` |
 
-Event types are enumerable. Adding a new type requires a schema bump.
+Event types are enumerable. Additive enum entries are tolerated by older readers (the replay loop ignores unknown types in its `default` branch) and do **not** require a `schema_version` bump. Removing or changing the shape of an existing type requires a schema bump.
 
 ### 3.3 ID format
 
@@ -236,6 +237,7 @@ The single hard rule: **agents may never mutate intent.**
 | `question_answered` | `user:*` only |
 | `attachment_added` | Anyone |
 | `run_dispatched` | Anyone (typically orchestrators) |
+| `plan_run_dispatched` | Anyone (typically orchestrators) |
 | `decision_made` | `agent:*` only |
 | `question_posed` | `agent:*` only |
 | `artifact_produced` | `agent:*` only |

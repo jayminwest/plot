@@ -30,7 +30,13 @@ describe("EVENT_ACL", () => {
 		expect(EVENT_ACL.question_posed).toEqual(["agent"]);
 		expect(EVENT_ACL.artifact_produced).toEqual(["agent"]);
 		// Anyone
-		for (const t of ["plot_created", "attachment_added", "run_dispatched", "note"] as const) {
+		for (const t of [
+			"plot_created",
+			"attachment_added",
+			"run_dispatched",
+			"plan_run_dispatched",
+			"note",
+		] as const) {
 			expect([...EVENT_ACL[t]].sort()).toEqual(["agent", "user"]);
 		}
 	});
@@ -59,6 +65,7 @@ describe("isAllowed", () => {
 		expect(isAllowed(AGENT, "note")).toBe(true);
 		expect(isAllowed(AGENT, "attachment_added")).toBe(true);
 		expect(isAllowed(AGENT, "run_dispatched")).toBe(true);
+		expect(isAllowed(AGENT, "plan_run_dispatched")).toBe(true);
 	});
 
 	test("agent cannot emit user-only events", () => {
