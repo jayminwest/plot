@@ -125,6 +125,15 @@ const eventDataByType = {
 			from_seed: { type: "string" },
 		},
 	},
+	plan_run_dispatched: {
+		type: "object",
+		required: ["plan_run_id", "plan_id", "children_count"],
+		properties: {
+			plan_run_id: { type: "string", minLength: 1 },
+			plan_id: { type: "string", minLength: 1 },
+			children_count: { type: "integer", minimum: 0 },
+		},
+	},
 	decision_made: {
 		type: "object",
 		required: ["summary"],

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-18
+
+### Added
+- **Event type (SPEC §3.2, §6):** `plan_run_dispatched` — orchestrators (warren
+  et al.) emit this when they launch a multi-child plan run against a Plot.
+  Sits alongside `run_dispatched` (single-child dispatch); shares the
+  `[user, agent]` write-ACL. Payload: `{ plan_run_id, plan_id, children_count }`.
+  Additive enum entry — no `schema_version` bump (old readers tolerate unknown
+  event types via the replay loop's `default` branch).
+
 ## [0.2.0] — 2026-05-17
 
 ### Changed
