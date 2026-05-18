@@ -1,6 +1,6 @@
 {
 	"name": "@os-eco/plot-cli",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Typed, queryable, JSON-backed coordination object for multi-agent work",
 	"type": "module",
 	"bin": {
