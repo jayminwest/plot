@@ -10,7 +10,7 @@ import {
 	SCHEMA_VERSION,
 } from "./types.ts";
 
-const PLOT_ID_PATTERN = "^pl-[a-z0-9]{8}$";
+const PLOT_ID_PATTERN = "^plot-[a-z0-9]{8}$";
 const ATTACHMENT_ID_PATTERN = "^att-\\d{3}$";
 const ACTOR_PATTERN =
 	"^(user:[A-Za-z0-9][A-Za-z0-9_-]*|agent:[A-Za-z0-9][A-Za-z0-9_-]*(:[A-Za-z0-9][A-Za-z0-9_-]*)?)$";
@@ -45,7 +45,7 @@ export const plotSchema = {
 	$schema: "https://json-schema.org/draft/2020-12/schema",
 	$id: "https://os-eco.dev/plot/schemas/plot.json",
 	title: "Plot",
-	description: "A coordination object stored as .plot/pl-xxx.json (SPEC §3.1).",
+	description: "A coordination object stored as .plot/plot-xxx.json (SPEC §3.1).",
 	type: "object",
 	additionalProperties: false,
 	required: [
@@ -70,7 +70,7 @@ export const plotSchema = {
 	},
 } as const;
 
-// Per-event-type data schemas. Each line in pl-xxx.events.jsonl validates
+// Per-event-type data schemas. Each line in plot-xxx.events.jsonl validates
 // against one of these via the oneOf on `type`.
 
 const eventDataByType = {
@@ -170,7 +170,7 @@ export const eventSchema = {
 	$schema: "https://json-schema.org/draft/2020-12/schema",
 	$id: "https://os-eco.dev/plot/schemas/event.json",
 	title: "PlotEvent",
-	description: "A single line in .plot/pl-xxx.events.jsonl (SPEC §3.2).",
+	description: "A single line in .plot/plot-xxx.events.jsonl (SPEC §3.2).",
 	type: "object",
 	required: ["type", "actor", "at", "data"],
 	properties: {

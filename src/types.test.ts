@@ -99,7 +99,7 @@ describe("type compile checks", () => {
 
 		const plot: Plot = {
 			schema_version: SCHEMA_VERSION,
-			id: "pl-abc12345",
+			id: "plot-abc12345",
 			name: "Add OAuth to billing portal",
 			status: "drafting",
 			created_at: "2026-05-17T10:00:00Z",

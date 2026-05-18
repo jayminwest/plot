@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 
-// SPEC §3.3 — Plot: pl-<8 char base32>; Attachment: att-<3 digit>.
-// The spec example `pl-abc12345` mixes letters and digits, so we accept
+// SPEC §3.3 — Plot: plot-<8 char base32>; Attachment: att-<3 digit>.
+// The spec example `plot-abc12345` mixes letters and digits, so we accept
 // any lowercase alphanumeric. Stricter base32 (RFC 4648) is a superset
 // rejection we can tighten later without breaking existing IDs.
 
-const PLOT_ID_RE = /^pl-[a-z0-9]{8}$/;
+const PLOT_ID_RE = /^plot-[a-z0-9]{8}$/;
 const ATTACHMENT_ID_RE = /^att-\d{3}$/;
 
 export function isPlotId(value: string): boolean {
@@ -19,7 +19,7 @@ export function isAttachmentId(value: string): boolean {
 export function assertPlotId(value: string): void {
 	if (!isPlotId(value)) {
 		throw new Error(
-			`invalid Plot ID: ${JSON.stringify(value)} (expected pl-<8 lowercase alphanumeric>)`,
+			`invalid Plot ID: ${JSON.stringify(value)} (expected plot-<8 lowercase alphanumeric>)`,
 		);
 	}
 }
@@ -30,11 +30,11 @@ export function assertAttachmentId(value: string): void {
 	}
 }
 
-// Generate a fresh pl-<8 char> ID that does not collide with the given set.
+// Generate a fresh plot-<8 char> ID that does not collide with the given set.
 export function generatePlotId(existingIds: Iterable<string> = []): string {
 	const taken = existingIds instanceof Set ? existingIds : new Set(existingIds);
 	for (let attempt = 0; attempt < 100; attempt++) {
-		const id = `pl-${randomBytes(5).toString("hex").slice(0, 8)}`;
+		const id = `plot-${randomBytes(5).toString("hex").slice(0, 8)}`;
 		if (!taken.has(id)) return id;
 	}
 	throw new Error("generatePlotId: exhausted attempts (100 collisions in a row)");

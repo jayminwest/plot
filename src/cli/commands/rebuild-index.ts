@@ -1,5 +1,5 @@
 // `plot rebuild-index` — wipe the SQLite cache and regenerate it from the
-// `.plot/pl-*.json` source files (SPEC §9.3, §5.4 invariant).
+// `.plot/plot-*.json` source files (SPEC §9.3, §5.4 invariant).
 //
 // The index is purely derived state, so a full rebuild is always safe: it
 // drops every row and reinserts from the JSON files on disk. Useful after a

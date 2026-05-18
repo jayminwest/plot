@@ -71,7 +71,7 @@ describe("acceptance #1 — human authoring workflow", () => {
 		const init = await cli("user:jw", ["init", "Add OAuth to billing portal"]);
 		expect(init.code).toBe(0);
 		const id = init.out.trim();
-		expect(id).toMatch(/^pl-[a-z0-9]{8}$/);
+		expect(id).toMatch(/^plot-[a-z0-9]{8}$/);
 
 		const intent = await cli("user:jw", [
 			"intent",
@@ -256,7 +256,7 @@ describe("acceptance #4 — schema versioning + migrate-on-read", () => {
 		// Hand-write a v0 Plot file with the previous (synthetic) shape. The
 		// CLI doesn't know about v0, but a PlotStore configured with a v0→v1
 		// migration should read it as v1 without touching disk.
-		const legacyId = "pl-leg00001";
+		const legacyId = "plot-leg00001";
 		await writeFile(
 			plotJsonPath(dir, legacyId),
 			`${JSON.stringify(

@@ -63,7 +63,7 @@ export interface Attachment {
 
 export interface Plot {
 	schema_version: SchemaVersion;
-	id: string; // pl-xxxxxxxx
+	id: string; // plot-xxxxxxxx
 	name: string;
 	status: PlotStatus;
 	created_at: string;

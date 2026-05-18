@@ -1,6 +1,6 @@
 // `plot sync` — stage and commit `.plot/` source files (SPEC §9.3).
 //
-// Stages only the source-of-truth files — `pl-*.json` and `pl-*.events.jsonl`
+// Stages only the source-of-truth files — `plot-*.json` and `plot-*.events.jsonl`
 // — explicitly. The SQLite cache (`.index.db` and its `-wal` / `-shm`
 // sidecars) is purely derived (§5.4) and must not be committed; this command
 // never adds it regardless of the project's `.gitignore`.

@@ -118,7 +118,7 @@ describe("get", () => {
 
 	test("read throws when Plot is missing", async () => {
 		const store = makeStore();
-		const handle = store.get("pl-aaaaaaaa");
+		const handle = store.get("plot-aaaaaaaa");
 		expect(handle.read()).rejects.toThrow(/not found/);
 	});
 });
@@ -340,9 +340,9 @@ describe("append", () => {
 
 	test("errors when the Plot doesn't exist", async () => {
 		const store = makeStore();
-		expect(store.get("pl-aaaaaaaa").append({ type: "note", data: { text: "hi" } })).rejects.toThrow(
-			/not found/,
-		);
+		expect(
+			store.get("plot-aaaaaaaa").append({ type: "note", data: { text: "hi" } }),
+		).rejects.toThrow(/not found/);
 	});
 
 	test("does not change Plot.updated_at or the index row", async () => {
@@ -482,7 +482,7 @@ describe("schema versioning (SPEC §7)", () => {
 		// configured with a v0->v1 migration. PlotHandle.read should return the
 		// upgraded shape; the on-disk file should remain at v0 since no edit
 		// triggered a write-back.
-		const id = "pl-legacy01";
+		const id = "plot-legacy01";
 		const path = plotJsonPath(dir, id);
 		const legacy = {
 			schema_version: 0,
@@ -526,7 +526,7 @@ describe("schema versioning (SPEC §7)", () => {
 	});
 
 	test("editing a migrated Plot writes the upgraded shape back at SCHEMA_VERSION", async () => {
-		const id = "pl-legacy02";
+		const id = "plot-legacy02";
 		const path = plotJsonPath(dir, id);
 		const legacy = {
 			schema_version: 0,

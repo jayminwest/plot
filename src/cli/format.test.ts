@@ -9,7 +9,7 @@ import {
 
 const PLOT: Plot = {
 	schema_version: 1,
-	id: "pl-abcd1234",
+	id: "plot-abcd1234",
 	name: "Add OAuth",
 	status: "ready",
 	created_at: "2026-05-17T10:00:00.000Z",
@@ -52,18 +52,18 @@ describe("formatPlotList", () => {
 
 	test("aligns columns", () => {
 		const out = formatPlotList([
-			{ id: "pl-aaaaaaaa", name: "A", status: "ready" },
-			{ id: "pl-bbbbbbbb", name: "B", status: "drafting" },
+			{ id: "plot-aaaaaaaa", name: "A", status: "ready" },
+			{ id: "plot-bbbbbbbb", name: "B", status: "drafting" },
 		]);
-		expect(out).toContain("pl-aaaaaaaa  ready");
-		expect(out).toContain("pl-bbbbbbbb  drafting");
+		expect(out).toContain("plot-aaaaaaaa  ready");
+		expect(out).toContain("plot-bbbbbbbb  drafting");
 	});
 });
 
 describe("formatPlotShow", () => {
 	test("renders intent fields, attachments, recent events with question ids", () => {
 		const out = formatPlotShow(PLOT, [Q1, Q2]);
-		expect(out).toContain("pl-abcd1234  ready");
+		expect(out).toContain("plot-abcd1234  ready");
 		expect(out).toContain("goal: Replace email auth");
 		expect(out).toContain("- migrate existing accounts");
 		expect(out).toContain("att-001  seeds_issue  sd-123");

@@ -39,7 +39,7 @@ A Plot references seeds, mulch, canopy prompts, agent runs, and PRs — it does 
 ## 2. Concepts
 
 ### 2.1 Plot
-A single coordination object identified by `pl-<8 char base32>`. Has structured fields (intent, attachments, status) and an append-only event log. Stored as two files on disk.
+A single coordination object identified by `plot-<8 char base32>`. Has structured fields (intent, attachments, status) and an append-only event log. Stored as two files on disk.
 
 ### 2.2 Substrate
 The collection of all Plots, their referenced attachments, and their event logs. The substrate is what makes the network topology legible — agents and humans both query it, both contribute to it, both leave provenance.
@@ -57,12 +57,12 @@ A typed, role-labeled reference to something living in another system: a seeds i
 
 ## 3. Data Model
 
-### 3.1 Plot file: `.plot/pl-xxx.json`
+### 3.1 Plot file: `.plot/plot-xxx.json`
 
 ```jsonc
 {
   "schema_version": 1,
-  "id": "pl-abc12345",
+  "id": "plot-abc12345",
   "name": "Add OAuth to billing portal",
   "status": "drafting",
   "created_at": "2026-05-17T10:00:00Z",
@@ -121,7 +121,7 @@ All fields are arrays of strings (except `goal`, which is a single string). Free
 
 V1 attachment types: `seeds_issue | mulch_record | agent_run | gh_pr | gh_issue | file`. Adding a new type is a code change in the type handler, not a schema bump.
 
-### 3.2 Event log: `.plot/pl-xxx.events.jsonl`
+### 3.2 Event log: `.plot/plot-xxx.events.jsonl`
 
 One JSON object per line, append-only, never rewritten:
 
@@ -156,7 +156,7 @@ Event types are enumerable. Adding a new type requires a schema bump.
 
 ### 3.3 ID format
 
-- Plot: `pl-<8 char base32>` (e.g., `pl-abc12345`)
+- Plot: `plot-<8 char base32>` (e.g., `plot-abc12345`)
 - Attachment: `att-<3 digit>` local to its Plot (e.g., `att-001`)
 
 Matches seeds (`sd-XXX`) and mulch (`mx-XXX`) conventions.
@@ -167,16 +167,16 @@ Matches seeds (`sd-XXX`) and mulch (`mx-XXX`) conventions.
 
 ```
 .plot/
-  pl-abc12345.json           # structured fields, source of truth, git-tracked
-  pl-abc12345.events.jsonl   # append-only log, source of truth, git-tracked
-  pl-def67890.json
-  pl-def67890.events.jsonl
+  plot-abc12345.json           # structured fields, source of truth, git-tracked
+  plot-abc12345.events.jsonl   # append-only log, source of truth, git-tracked
+  plot-def67890.json
+  plot-def67890.events.jsonl
   .index.db                  # SQLite cache, gitignored
 .gitignore                   # must include .plot/.index.db
 ```
 
 ### 4.1 Source-of-truth invariants
-- Plot files (`pl-xxx.json`) and event logs (`pl-xxx.events.jsonl`) are the **sole source of truth**.
+- Plot files (`plot-xxx.json`) and event logs (`plot-xxx.events.jsonl`) are the **sole source of truth**.
 - The SQLite index is purely derived state — `rebuild_from_files()` is always sufficient to reconstruct it.
 - Nothing lives only in the index. First-time clone with no index → `rebuild()` → ready.
 
@@ -186,8 +186,8 @@ The data model has two distinct write-frequency profiles:
 
 | File | Write frequency | Why this format |
 |------|-----------------|-----------------|
-| `pl-xxx.json` | Low (intent edits, status changes, attachment add/remove) | Pretty-printed JSON with sorted keys yields clean semantic diffs in git |
-| `pl-xxx.events.jsonl` | High (every agent event) | Append-only JSONL means concurrent writes from different git branches merge as concatenations — git's happy path |
+| `plot-xxx.json` | Low (intent edits, status changes, attachment add/remove) | Pretty-printed JSON with sorted keys yields clean semantic diffs in git |
+| `plot-xxx.events.jsonl` | High (every agent event) | Append-only JSONL means concurrent writes from different git branches merge as concatenations — git's happy path |
 
 Treating both the same is the source of pain. The split makes git-native storage tractable even at high event rates.
 
@@ -326,8 +326,8 @@ await plot.attach({ type: 'seeds_issue', ref: 'sd-123', role: 'tracks' })
 await plot.setStatus('ready')
 
 // agent side
-const ctx = await store.get('pl-abc12345').view('implementer')
-await store.get('pl-abc12345').append({
+const ctx = await store.get('plot-abc12345').view('implementer')
+await store.get('plot-abc12345').append({
   type: 'decision_made',
   data: { summary: '...', rationale: '...' }
 })

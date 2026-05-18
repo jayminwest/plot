@@ -10,16 +10,21 @@ import {
 
 describe("isPlotId", () => {
 	test("accepts spec example", () => {
-		expect(isPlotId("pl-abc12345")).toBe(true);
+		expect(isPlotId("plot-abc12345")).toBe(true);
 	});
 
 	test("rejects wrong prefix, length, casing", () => {
-		expect(isPlotId("PL-abc12345")).toBe(false);
-		expect(isPlotId("pl-abc1234")).toBe(false);
-		expect(isPlotId("pl-abc123456")).toBe(false);
-		expect(isPlotId("pl-ABC12345")).toBe(false);
+		expect(isPlotId("PLOT-abc12345")).toBe(false);
+		expect(isPlotId("plot-abc1234")).toBe(false);
+		expect(isPlotId("plot-abc123456")).toBe(false);
+		expect(isPlotId("plot-ABC12345")).toBe(false);
 		expect(isPlotId("sd-abc12345")).toBe(false);
-		expect(isPlotId("plabc12345")).toBe(false);
+		expect(isPlotId("plotabc12345")).toBe(false);
+	});
+
+	test("rejects legacy pl- prefix (renamed to plot- in v0.2)", () => {
+		expect(isPlotId("pl-abc12345")).toBe(false);
+		expect(isPlotId("pl-aaaaaaaa")).toBe(false);
 	});
 });
 
@@ -40,7 +45,7 @@ describe("isAttachmentId", () => {
 describe("assert helpers", () => {
 	test("assertPlotId throws on bad input", () => {
 		expect(() => assertPlotId("nope")).toThrow(/invalid Plot ID/);
-		expect(() => assertPlotId("pl-abc12345")).not.toThrow();
+		expect(() => assertPlotId("plot-abc12345")).not.toThrow();
 	});
 
 	test("assertAttachmentId throws on bad input", () => {
@@ -50,7 +55,7 @@ describe("assert helpers", () => {
 });
 
 describe("generatePlotId", () => {
-	test("returns a valid pl- ID", () => {
+	test("returns a valid plot- ID", () => {
 		const id = generatePlotId();
 		expect(isPlotId(id)).toBe(true);
 	});

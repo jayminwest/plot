@@ -32,7 +32,7 @@ function makePlot(overrides: Partial<Plot> = {}): Plot {
 	};
 	return {
 		schema_version: 1,
-		id: "pl-abcdefgh",
+		id: "plot-abcdefgh",
 		name: "OAuth",
 		status: "active",
 		created_at: "2026-05-17T10:00:00.000Z",

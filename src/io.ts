@@ -1,7 +1,7 @@
 // Plot file IO layer (SPEC §4).
 //
-// Two-files-per-Plot model: `pl-xxx.json` (low write rate, pretty-printed,
-// sorted keys, atomically replaced) and `pl-xxx.events.jsonl` (high write
+// Two-files-per-Plot model: `plot-xxx.json` (low write rate, pretty-printed,
+// sorted keys, atomically replaced) and `plot-xxx.events.jsonl` (high write
 // rate, append-only, one JSON object per line). All mutating operations
 // hold a per-file advisory lock so concurrent writers in the same process
 // can't interleave.
@@ -25,9 +25,9 @@ export function plotEventsPath(dir: string, id: string): string {
 	return join(dir, `${id}.events.jsonl`);
 }
 
-const PLOT_JSON_RE = /^(pl-[a-z0-9]{8})\.json$/;
+const PLOT_JSON_RE = /^(plot-[a-z0-9]{8})\.json$/;
 
-// List Plot IDs by scanning the directory for `pl-xxx.json` files. Missing
+// List Plot IDs by scanning the directory for `plot-xxx.json` files. Missing
 // directories return an empty list — first-time `plot init` callers shouldn't
 // need to special-case this.
 export async function listPlotIds(dir: string): Promise<string[]> {

@@ -303,7 +303,7 @@ async function checkOrphans(dir: string, knownIds: Set<string>): Promise<Finding
 	}
 	const findings: Finding[] = [];
 	for (const name of entries) {
-		const m = name.match(/^(pl-[a-z0-9]{8})\.events\.jsonl$/);
+		const m = name.match(/^(plot-[a-z0-9]{8})\.events\.jsonl$/);
 		if (!m?.[1]) continue;
 		const id = m[1];
 		if (!isPlotId(id)) continue;

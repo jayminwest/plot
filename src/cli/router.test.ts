@@ -83,7 +83,7 @@ describe("router help + dispatch", () => {
 							? "1"
 							: undefined,
 		};
-		const code = await runCli({ argv: ["show", "pl-aaaaaaaa"], io, env });
+		const code = await runCli({ argv: ["show", "plot-aaaaaaaa"], io, env });
 		expect(code).toBe(1);
 		const out = err.join("");
 		expect(out).toContain("not found");
@@ -97,7 +97,7 @@ describe("init / list / show", () => {
 		const init = await run("user:jw", ["init", "Add OAuth"]);
 		expect(init.code).toBe(0);
 		const id = init.out.trim();
-		expect(id).toMatch(/^pl-[a-z0-9]{8}$/);
+		expect(id).toMatch(/^plot-[a-z0-9]{8}$/);
 
 		const list = await run("user:jw", ["list"]);
 		expect(list.code).toBe(0);
@@ -116,7 +116,7 @@ describe("init / list / show", () => {
 		expect(r.code).toBe(0);
 		const parsed = JSON.parse(r.out);
 		expect(parsed.name).toBe("X");
-		expect(parsed.id).toMatch(/^pl-[a-z0-9]{8}$/);
+		expect(parsed.id).toMatch(/^plot-[a-z0-9]{8}$/);
 	});
 
 	test("init usage error when name missing", async () => {
@@ -138,7 +138,7 @@ describe("init / list / show", () => {
 	});
 
 	test("show on nonexistent plot exits 1 with message", async () => {
-		const r = await run("user:jw", ["show", "pl-aaaaaaaa"]);
+		const r = await run("user:jw", ["show", "plot-aaaaaaaa"]);
 		expect(r.code).toBe(1);
 		expect(r.err).toContain("not found");
 	});
@@ -697,7 +697,7 @@ describe("sync", () => {
 	test("stages + commits newly-created plot files", async () => {
 		const init = await runInRepo(["init", "OAuth"]);
 		const id = init.out.trim();
-		expect(id).toMatch(/^pl-[a-z0-9]{8}$/);
+		expect(id).toMatch(/^plot-[a-z0-9]{8}$/);
 
 		const r = await runInRepo(["sync", "-m", "plot: add OAuth"]);
 		expect(r.code).toBe(0);
@@ -736,7 +736,7 @@ describe("doctor", () => {
 	test("orphan events file is flagged as a warning", async () => {
 		const { writeFile: wf } = await import("node:fs/promises");
 		await wf(
-			join(dir, "pl-deadbeef.events.jsonl"),
+			join(dir, "plot-deadbeef.events.jsonl"),
 			`${JSON.stringify({ type: "plot_created", actor: "user:jw", at: "2026-01-01T00:00:00Z", data: { name: "ghost" } })}\n`,
 			"utf-8",
 		);

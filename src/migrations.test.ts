@@ -4,7 +4,7 @@ import { type Plot, SCHEMA_VERSION } from "./types.ts";
 
 const currentPlot: Plot = {
 	schema_version: SCHEMA_VERSION,
-	id: "pl-aaaaaaaa",
+	id: "plot-aaaaaaaa",
 	name: "X",
 	status: "drafting",
 	created_at: "2026-05-17T10:00:00.000Z",
@@ -26,7 +26,7 @@ describe("migratePlot", () => {
 	});
 
 	test("rejects missing schema_version", () => {
-		expect(() => migratePlot({ id: "pl-aaaaaaaa" })).toThrow(/missing or invalid schema_version/);
+		expect(() => migratePlot({ id: "plot-aaaaaaaa" })).toThrow(/missing or invalid schema_version/);
 	});
 
 	test("rejects negative or non-integer schema_version", () => {
@@ -52,7 +52,7 @@ describe("migratePlot", () => {
 		// Pretend v0 had no `success_criteria` field; v1 adds it.
 		const legacy = {
 			schema_version: 0,
-			id: "pl-legacy00",
+			id: "plot-legacy00",
 			name: "L",
 			status: "drafting",
 			created_at: "2026-05-17T10:00:00.000Z",
@@ -75,7 +75,7 @@ describe("migratePlot", () => {
 		expect(result.schema_version).toBe(SCHEMA_VERSION);
 		expect(result.intent.success_criteria).toEqual([]);
 		expect(result.intent.goal).toBe("g");
-		expect(result.id).toBe("pl-legacy00");
+		expect(result.id).toBe("plot-legacy00");
 	});
 
 	test("rejects a migration whose `to` does not equal `from + 1`", () => {
@@ -103,7 +103,7 @@ describe("migratePlot", () => {
 	test("does not mutate the input object", () => {
 		const legacy = {
 			schema_version: 0,
-			id: "pl-legacy00",
+			id: "plot-legacy00",
 			intent: { goal: "g" },
 		};
 		const snapshot = JSON.parse(JSON.stringify(legacy));

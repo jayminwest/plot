@@ -4,7 +4,7 @@ import { type Plot, SCHEMA_VERSION } from "./types.ts";
 
 const plot: Plot = {
 	schema_version: SCHEMA_VERSION,
-	id: "pl-abcdefgh",
+	id: "plot-abcdefgh",
 	name: "Test plot",
 	status: "drafting",
 	created_at: "2026-05-17T10:00:00Z",
@@ -25,7 +25,7 @@ const plot: Plot = {
 describe("plotToIndexRow", () => {
 	test("projects only the structured-field subset (§5.4 invariant)", () => {
 		expect(plotToIndexRow(plot)).toEqual({
-			id: "pl-abcdefgh",
+			id: "plot-abcdefgh",
 			name: "Test plot",
 			status: "drafting",
 			created_at: "2026-05-17T10:00:00Z",

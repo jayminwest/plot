@@ -1,5 +1,5 @@
 // SQLite-backed PlotIndex (SPEC §5.2). File lives at `.plot/.index.db` and is
-// gitignored; first read rebuilds from `.plot/pl-*.json` if missing.
+// gitignored; first read rebuilds from `.plot/plot-*.json` if missing.
 //
 // The index is purely derived state. The schema mirrors the projection in
 // `plotToIndexRow` exactly so the §5.4 invariant ("never put a field in the

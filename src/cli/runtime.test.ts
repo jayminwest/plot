@@ -8,8 +8,8 @@ describe("parseArgs", () => {
 	});
 
 	test("--flag value form", () => {
-		expect(parseArgs(["--role", "tracks", "pl-x"])).toEqual({
-			positional: ["pl-x"],
+		expect(parseArgs(["--role", "tracks", "plot-x"])).toEqual({
+			positional: ["plot-x"],
 			flags: { role: "tracks" },
 		});
 	});
@@ -19,8 +19,8 @@ describe("parseArgs", () => {
 	});
 
 	test("boolean flag does not consume next token", () => {
-		expect(parseArgs(["--json", "pl-x"], { boolean: ["json"] })).toEqual({
-			positional: ["pl-x"],
+		expect(parseArgs(["--json", "plot-x"], { boolean: ["json"] })).toEqual({
+			positional: ["plot-x"],
 			flags: { json: true },
 		});
 	});
@@ -82,18 +82,18 @@ describe("resolvePlotId", () => {
 	});
 
 	test("positional wins over --plot and PLOT_ID", () => {
-		const args = parseArgs(["pl-11111111", "--plot", "pl-22222222"]);
-		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-11111111");
+		const args = parseArgs(["plot-11111111", "--plot", "plot-22222222"]);
+		expect(resolvePlotId(args, withEnvId("plot-33333333"))).toBe("plot-11111111");
 	});
 
 	test("--plot wins over PLOT_ID", () => {
-		const args = parseArgs(["--plot", "pl-22222222"]);
-		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-22222222");
+		const args = parseArgs(["--plot", "plot-22222222"]);
+		expect(resolvePlotId(args, withEnvId("plot-33333333"))).toBe("plot-22222222");
 	});
 
 	test("falls back to PLOT_ID env", () => {
 		const args = parseArgs([]);
-		expect(resolvePlotId(args, withEnvId("pl-33333333"))).toBe("pl-33333333");
+		expect(resolvePlotId(args, withEnvId("plot-33333333"))).toBe("plot-33333333");
 	});
 
 	test("throws when no source provides an id", () => {

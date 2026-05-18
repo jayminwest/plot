@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING (SPEC §3.3):** Plot ID prefix renamed from `pl-` to `plot-`. New format:
+  `plot-<8 lowercase alphanumeric>` (e.g., `plot-abc12345`). Eliminates collision
+  with seeds plan IDs (`pl-<4 hex>`), which can share the same prefix when both
+  appear in an agent context (warren integrates both as opt-in features). Old
+  `pl-<8>` IDs are now rejected by `isPlotId` / `assertPlotId` and by the JSON
+  schema. The one in-repo Plot fixture was renamed in this release; downstream
+  consumers (warren) must regenerate any persisted `pl-<id>` references.
+
 ## [0.1.1] — 2026-05-17
 
 No functional changes. Re-release to recover the initial npm publish after the
@@ -20,7 +29,7 @@ and append events under enforced write-ACL.
 
 ### Added
 - **Data model (SPEC §3, §4):** `Plot` and event types, JSON schema, on-disk layout
-  with `.plot/pl-<id>.json` (intent + attachments) and `.plot/pl-<id>.events.jsonl`
+  with `.plot/plot-<id>.json` (intent + attachments) and `.plot/plot-<id>.events.jsonl`
   (append-only event log) as the sole source of truth.
 - **File IO (SPEC §4.4):** atomic JSON writes (`tmp` + `rename`), JSONL append,
   cross-process file locking (`.lock` sentinel) so concurrent agents don't corrupt

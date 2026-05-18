@@ -1,6 +1,6 @@
 node_modules/
 
-# Plot SQLite index — derived state, rebuilt from .plot/pl-*.json source files
+# Plot SQLite index — derived state, rebuilt from .plot/plot-*.json source files
 # (SPEC §4.1, §5.4). Includes WAL/SHM sidecars.
 .plot/.index.db
 .plot/.index.db-wal

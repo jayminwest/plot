@@ -9,7 +9,7 @@ import { type Plot, type PlotStatus, SCHEMA_VERSION } from "./types.ts";
 function makePlot(overrides: Partial<Plot> = {}): Plot {
 	return {
 		schema_version: SCHEMA_VERSION,
-		id: "pl-aaaaaaaa",
+		id: "plot-aaaaaaaa",
 		name: "A plot",
 		status: "drafting",
 		created_at: "2026-05-17T10:00:00Z",
@@ -56,12 +56,12 @@ describe("constructor", () => {
 
 describe("upsert / query", () => {
 	test("upsert inserts a Plot and query returns the projected row", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", name: "First", status: "ready" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", name: "First", status: "ready" }));
 		const result = await index.query();
 		expect(result.total).toBe(1);
 		expect(result.rows).toEqual([
 			{
-				id: "pl-aaaaaaaa",
+				id: "plot-aaaaaaaa",
 				name: "First",
 				status: "ready",
 				created_at: "2026-05-17T10:00:00Z",
@@ -71,9 +71,9 @@ describe("upsert / query", () => {
 	});
 
 	test("upsert on an existing id updates instead of duplicating", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", name: "v1" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", name: "v1" }));
 		await index.upsert(
-			makePlot({ id: "pl-aaaaaaaa", name: "v2", updated_at: "2026-05-17T12:00:00Z" }),
+			makePlot({ id: "plot-aaaaaaaa", name: "v2", updated_at: "2026-05-17T12:00:00Z" }),
 		);
 		const result = await index.query();
 		expect(result.total).toBe(1);
@@ -82,88 +82,96 @@ describe("upsert / query", () => {
 	});
 
 	test("filters by status (single value and array)", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", status: "drafting" }));
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb", status: "ready" }));
-		await index.upsert(makePlot({ id: "pl-cccccccc", status: "done" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", status: "drafting" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb", status: "ready" }));
+		await index.upsert(makePlot({ id: "plot-cccccccc", status: "done" }));
 
 		const ready = await index.query({ status: "ready" });
-		expect(ready.rows.map((r) => r.id)).toEqual(["pl-bbbbbbbb"]);
+		expect(ready.rows.map((r) => r.id)).toEqual(["plot-bbbbbbbb"]);
 
 		const multi = await index.query({ status: ["ready", "done"] });
-		expect(multi.rows.map((r) => r.id).sort()).toEqual(["pl-bbbbbbbb", "pl-cccccccc"]);
+		expect(multi.rows.map((r) => r.id).sort()).toEqual(["plot-bbbbbbbb", "plot-cccccccc"]);
 	});
 
 	test("filters by id list", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb" }));
-		await index.upsert(makePlot({ id: "pl-cccccccc" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb" }));
+		await index.upsert(makePlot({ id: "plot-cccccccc" }));
 
-		const result = await index.query({ ids: ["pl-aaaaaaaa", "pl-cccccccc"] });
-		expect(result.rows.map((r) => r.id).sort()).toEqual(["pl-aaaaaaaa", "pl-cccccccc"]);
+		const result = await index.query({ ids: ["plot-aaaaaaaa", "plot-cccccccc"] });
+		expect(result.rows.map((r) => r.id).sort()).toEqual(["plot-aaaaaaaa", "plot-cccccccc"]);
 	});
 
 	test("empty ids array matches nothing without round-tripping SQL", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
 		expect(await index.query({ ids: [] })).toEqual({ rows: [], total: 0 });
 	});
 
 	test("updatedSince filters by ISO timestamp", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", updated_at: "2026-05-15T00:00:00Z" }));
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb", updated_at: "2026-05-17T00:00:00Z" }));
-		await index.upsert(makePlot({ id: "pl-cccccccc", updated_at: "2026-05-18T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", updated_at: "2026-05-15T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb", updated_at: "2026-05-17T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-cccccccc", updated_at: "2026-05-18T00:00:00Z" }));
 
 		const result = await index.query({ updatedSince: "2026-05-17T00:00:00Z" });
-		expect(result.rows.map((r) => r.id).sort()).toEqual(["pl-bbbbbbbb", "pl-cccccccc"]);
+		expect(result.rows.map((r) => r.id).sort()).toEqual(["plot-bbbbbbbb", "plot-cccccccc"]);
 	});
 
 	test("orders by updated_at desc by default", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", updated_at: "2026-05-15T00:00:00Z" }));
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb", updated_at: "2026-05-17T00:00:00Z" }));
-		await index.upsert(makePlot({ id: "pl-cccccccc", updated_at: "2026-05-16T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", updated_at: "2026-05-15T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb", updated_at: "2026-05-17T00:00:00Z" }));
+		await index.upsert(makePlot({ id: "plot-cccccccc", updated_at: "2026-05-16T00:00:00Z" }));
 
 		const result = await index.query();
-		expect(result.rows.map((r) => r.id)).toEqual(["pl-bbbbbbbb", "pl-cccccccc", "pl-aaaaaaaa"]);
+		expect(result.rows.map((r) => r.id)).toEqual([
+			"plot-bbbbbbbb",
+			"plot-cccccccc",
+			"plot-aaaaaaaa",
+		]);
 	});
 
 	test("supports custom orderBy + orderDir", async () => {
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb" }));
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
-		await index.upsert(makePlot({ id: "pl-cccccccc" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-cccccccc" }));
 
 		const result = await index.query({ orderBy: "id", orderDir: "asc" });
-		expect(result.rows.map((r) => r.id)).toEqual(["pl-aaaaaaaa", "pl-bbbbbbbb", "pl-cccccccc"]);
+		expect(result.rows.map((r) => r.id)).toEqual([
+			"plot-aaaaaaaa",
+			"plot-bbbbbbbb",
+			"plot-cccccccc",
+		]);
 	});
 
 	test("paginates with limit/offset and reports total before paging", async () => {
-		for (const id of ["pl-aaaaaaaa", "pl-bbbbbbbb", "pl-cccccccc", "pl-dddddddd"]) {
+		for (const id of ["plot-aaaaaaaa", "plot-bbbbbbbb", "plot-cccccccc", "plot-dddddddd"]) {
 			await index.upsert(makePlot({ id, updated_at: `2026-05-17T${id.slice(-2)}:00:00Z` }));
 		}
 		const page = await index.query({ orderBy: "id", orderDir: "asc", limit: 2, offset: 1 });
 		expect(page.total).toBe(4);
-		expect(page.rows.map((r) => r.id)).toEqual(["pl-bbbbbbbb", "pl-cccccccc"]);
+		expect(page.rows.map((r) => r.id)).toEqual(["plot-bbbbbbbb", "plot-cccccccc"]);
 	});
 });
 
 describe("remove", () => {
 	test("deletes the row and subsequent queries no longer see it", async () => {
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb" }));
 
-		await index.remove("pl-aaaaaaaa");
+		await index.remove("plot-aaaaaaaa");
 		const result = await index.query();
-		expect(result.rows.map((r) => r.id)).toEqual(["pl-bbbbbbbb"]);
+		expect(result.rows.map((r) => r.id)).toEqual(["plot-bbbbbbbb"]);
 	});
 
 	test("removing a missing id is a no-op", async () => {
-		await index.remove("pl-zzzzzzzz");
+		await index.remove("plot-zzzzzzzz");
 		expect(await index.query()).toEqual({ rows: [], total: 0 });
 	});
 });
 
 describe("rebuild (SPEC §4.1, §5.4 invariant)", () => {
 	test("rebuilds an empty index from a directory of Plot files", async () => {
-		await seedFile(makePlot({ id: "pl-aaaaaaaa", name: "Alpha", status: "ready" }));
-		await seedFile(makePlot({ id: "pl-bbbbbbbb", name: "Beta", status: "drafting" }));
+		await seedFile(makePlot({ id: "plot-aaaaaaaa", name: "Alpha", status: "ready" }));
+		await seedFile(makePlot({ id: "plot-bbbbbbbb", name: "Beta", status: "drafting" }));
 
 		await index.rebuild(dir);
 		const result = await index.query({ orderBy: "id", orderDir: "asc" });
@@ -171,16 +179,16 @@ describe("rebuild (SPEC §4.1, §5.4 invariant)", () => {
 	});
 
 	test("wiping the DB and rebuilding reproduces identical query results", async () => {
-		await seedFile(makePlot({ id: "pl-aaaaaaaa", name: "Alpha", status: "ready" }));
+		await seedFile(makePlot({ id: "plot-aaaaaaaa", name: "Alpha", status: "ready" }));
 		await seedFile(
 			makePlot({
-				id: "pl-bbbbbbbb",
+				id: "plot-bbbbbbbb",
 				name: "Beta",
 				status: "active",
 				updated_at: "2026-05-18T00:00:00Z",
 			}),
 		);
-		await seedFile(makePlot({ id: "pl-cccccccc", name: "Gamma", status: "done" }));
+		await seedFile(makePlot({ id: "plot-cccccccc", name: "Gamma", status: "done" }));
 
 		await index.rebuild(dir);
 		const before = await index.query({ orderBy: "id", orderDir: "asc" });
@@ -200,13 +208,13 @@ describe("rebuild (SPEC §4.1, §5.4 invariant)", () => {
 	});
 
 	test("rebuild replaces previous rows (no stale entries)", async () => {
-		await index.upsert(makePlot({ id: "pl-stalexyz" as string, name: "stale" } as Partial<Plot>));
-		// pl-stalexyz isn't on disk; rebuild should drop it.
-		await seedFile(makePlot({ id: "pl-aaaaaaaa", name: "Alpha" }));
+		await index.upsert(makePlot({ id: "plot-stalexyz" as string, name: "stale" } as Partial<Plot>));
+		// plot-stalexyz isn't on disk; rebuild should drop it.
+		await seedFile(makePlot({ id: "plot-aaaaaaaa", name: "Alpha" }));
 		await index.rebuild(dir);
 
 		const result = await index.query();
-		expect(result.rows.map((r) => r.id)).toEqual(["pl-aaaaaaaa"]);
+		expect(result.rows.map((r) => r.id)).toEqual(["plot-aaaaaaaa"]);
 	});
 
 	test("rebuild on a missing directory leaves the index empty", async () => {
@@ -218,37 +226,37 @@ describe("rebuild (SPEC §4.1, §5.4 invariant)", () => {
 describe("subscribe", () => {
 	test("fires on upsert for the matching Plot only", async () => {
 		const calls: string[] = [];
-		const unsub = index.subscribe("pl-aaaaaaaa", () => calls.push("a"));
-		index.subscribe("pl-bbbbbbbb", () => calls.push("b"));
+		const unsub = index.subscribe("plot-aaaaaaaa", () => calls.push("a"));
+		index.subscribe("plot-bbbbbbbb", () => calls.push("b"));
 
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
 		expect(calls).toEqual(["a"]);
 
-		await index.upsert(makePlot({ id: "pl-bbbbbbbb" }));
+		await index.upsert(makePlot({ id: "plot-bbbbbbbb" }));
 		expect(calls).toEqual(["a", "b"]);
 
 		unsub();
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa", name: "v2" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa", name: "v2" }));
 		expect(calls).toEqual(["a", "b"]); // unsubscribed
 	});
 
 	test("fires on remove", async () => {
 		let fired = 0;
-		index.subscribe("pl-aaaaaaaa", () => {
+		index.subscribe("plot-aaaaaaaa", () => {
 			fired += 1;
 		});
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
-		await index.remove("pl-aaaaaaaa");
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
+		await index.remove("plot-aaaaaaaa");
 		expect(fired).toBe(2);
 	});
 
 	test("fires on rebuild for every Plot present after rebuild", async () => {
 		const fired = new Set<string>();
-		index.subscribe("pl-aaaaaaaa", () => fired.add("a"));
-		index.subscribe("pl-bbbbbbbb", () => fired.add("b"));
+		index.subscribe("plot-aaaaaaaa", () => fired.add("a"));
+		index.subscribe("plot-bbbbbbbb", () => fired.add("b"));
 
-		await seedFile(makePlot({ id: "pl-aaaaaaaa" }));
-		await seedFile(makePlot({ id: "pl-bbbbbbbb" }));
+		await seedFile(makePlot({ id: "plot-aaaaaaaa" }));
+		await seedFile(makePlot({ id: "plot-bbbbbbbb" }));
 		await index.rebuild(dir);
 
 		expect(fired).toEqual(new Set(["a", "b"]));
@@ -256,11 +264,11 @@ describe("subscribe", () => {
 
 	test("fires on rebuild for a watched Plot that disappeared", async () => {
 		let fired = 0;
-		index.subscribe("pl-vanished" as string, () => {
+		index.subscribe("plot-vanished" as string, () => {
 			fired += 1;
 		});
 
-		await seedFile(makePlot({ id: "pl-aaaaaaaa" }));
+		await seedFile(makePlot({ id: "plot-aaaaaaaa" }));
 		await index.rebuild(dir);
 
 		expect(fired).toBe(1);
@@ -269,13 +277,13 @@ describe("subscribe", () => {
 	test("unsubscribing during a callback does not skip remaining listeners", async () => {
 		const order: string[] = [];
 		let unsubA: (() => void) | undefined;
-		unsubA = index.subscribe("pl-aaaaaaaa", () => {
+		unsubA = index.subscribe("plot-aaaaaaaa", () => {
 			order.push("a");
 			unsubA?.();
 		});
-		index.subscribe("pl-aaaaaaaa", () => order.push("b"));
+		index.subscribe("plot-aaaaaaaa", () => order.push("b"));
 
-		await index.upsert(makePlot({ id: "pl-aaaaaaaa" }));
+		await index.upsert(makePlot({ id: "plot-aaaaaaaa" }));
 		expect(order.sort()).toEqual(["a", "b"]);
 	});
 });
@@ -300,7 +308,7 @@ describe("status-string round trip", () => {
 		for (let i = 0; i < statuses.length; i++) {
 			await index.upsert(
 				makePlot({
-					id: `pl-${"a".repeat(7)}${i}`,
+					id: `plot-${"a".repeat(7)}${i}`,
 					status: statuses[i] as PlotStatus,
 				}),
 			);

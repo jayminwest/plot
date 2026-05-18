@@ -23,8 +23,8 @@ afterEach(async () => {
 
 describe("path helpers", () => {
 	test("plotJsonPath / plotEventsPath produce the SPEC §4 layout", () => {
-		expect(plotJsonPath(".plot", "pl-abc12345")).toBe(".plot/pl-abc12345.json");
-		expect(plotEventsPath(".plot", "pl-abc12345")).toBe(".plot/pl-abc12345.events.jsonl");
+		expect(plotJsonPath(".plot", "plot-abc12345")).toBe(".plot/plot-abc12345.json");
+		expect(plotEventsPath(".plot", "plot-abc12345")).toBe(".plot/plot-abc12345.events.jsonl");
 	});
 });
 
@@ -46,7 +46,7 @@ describe("stableStringify", () => {
 
 describe("writeJsonAtomic / readJson", () => {
 	test("round-trips and sorts keys on disk", async () => {
-		const path = join(dir, "pl-abc12345.json");
+		const path = join(dir, "plot-abc12345.json");
 		await writeJsonAtomic(path, { b: 1, a: 2 });
 
 		const onDisk = await readFile(path, "utf-8");
@@ -57,7 +57,7 @@ describe("writeJsonAtomic / readJson", () => {
 	});
 
 	test("creates parent directories on demand", async () => {
-		const path = join(dir, "nested", "deeper", "pl-abc12345.json");
+		const path = join(dir, "nested", "deeper", "plot-abc12345.json");
 		await writeJsonAtomic(path, { ok: true });
 		expect(await readJson<{ ok: boolean }>(path)).toEqual({ ok: true });
 	});
@@ -78,7 +78,7 @@ describe("writeJsonAtomic / readJson", () => {
 	});
 
 	test("leaves no .tmp.* siblings after a successful write", async () => {
-		const path = join(dir, "pl-abc12345.json");
+		const path = join(dir, "plot-abc12345.json");
 		await writeJsonAtomic(path, { ok: true });
 		const entries = await readdir(dir);
 		expect(entries.some((e) => e.includes(".tmp."))).toBe(false);
@@ -86,7 +86,7 @@ describe("writeJsonAtomic / readJson", () => {
 	});
 
 	test("serializes concurrent writes to the same file", async () => {
-		const path = join(dir, "pl-abc12345.json");
+		const path = join(dir, "plot-abc12345.json");
 		const writers = Array.from({ length: 8 }, (_, i) =>
 			writeJsonAtomic(path, { i, marker: `v${i}` }),
 		);
@@ -98,7 +98,7 @@ describe("writeJsonAtomic / readJson", () => {
 
 describe("appendEvent / readEvents", () => {
 	test("appends a single JSONL line per event", async () => {
-		const path = join(dir, "pl-abc12345.events.jsonl");
+		const path = join(dir, "plot-abc12345.events.jsonl");
 		await appendEvent(path, { type: "plot_created", actor: "user:jw", at: "t0", data: {} });
 		await appendEvent(path, { type: "note", actor: "user:jw", at: "t1", data: { text: "hi" } });
 
@@ -163,13 +163,13 @@ describe("listPlotIds", () => {
 	});
 
 	test("returns sorted Plot IDs and ignores unrelated files", async () => {
-		await writeFile(join(dir, "pl-cccccccc.json"), "{}", "utf-8");
-		await writeFile(join(dir, "pl-aaaaaaaa.json"), "{}", "utf-8");
-		await writeFile(join(dir, "pl-bbbbbbbb.json"), "{}", "utf-8");
-		await writeFile(join(dir, "pl-aaaaaaaa.events.jsonl"), "", "utf-8");
+		await writeFile(join(dir, "plot-cccccccc.json"), "{}", "utf-8");
+		await writeFile(join(dir, "plot-aaaaaaaa.json"), "{}", "utf-8");
+		await writeFile(join(dir, "plot-bbbbbbbb.json"), "{}", "utf-8");
+		await writeFile(join(dir, "plot-aaaaaaaa.events.jsonl"), "", "utf-8");
 		await writeFile(join(dir, "README.md"), "", "utf-8");
 		await writeFile(join(dir, ".index.db"), "", "utf-8");
 
-		expect(await listPlotIds(dir)).toEqual(["pl-aaaaaaaa", "pl-bbbbbbbb", "pl-cccccccc"]);
+		expect(await listPlotIds(dir)).toEqual(["plot-aaaaaaaa", "plot-bbbbbbbb", "plot-cccccccc"]);
 	});
 });

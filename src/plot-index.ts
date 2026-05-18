@@ -1,4 +1,4 @@
-// PlotIndex interface — derived materialized view over .plot/pl-xxx.json files
+// PlotIndex interface — derived materialized view over .plot/plot-xxx.json files
 // (SPEC §5). The index is purely a query cache; the JSON + JSONL files on disk
 // are the sole source of truth (§4.1, §5.4). Any field exposed here must be
 // derivable from a source file so `rebuild()` can reconstruct the index from
@@ -47,7 +47,7 @@ export interface PlotQueryResult {
 export type Unsubscribe = () => void;
 
 export interface PlotIndex {
-	// Wipe and repopulate the index from `<plotsDir>/pl-*.json` files. Always
+	// Wipe and repopulate the index from `<plotsDir>/plot-*.json` files. Always
 	// sufficient to reconstruct the index — §4.1 invariant. Notifies every
 	// per-Plot subscriber whose Plot is present after rebuild.
 	rebuild(plotsDir: string): Promise<void>;

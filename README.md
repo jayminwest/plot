@@ -36,24 +36,24 @@ Plot stores its source files under `.plot/` in the repo where you run it; commit
 
 ```bash
 plot init "Add OAuth to billing portal"
-# → pl-abc12345
+# → plot-abc12345
 
-plot intent pl-abc12345 \
+plot intent plot-abc12345 \
   --goal "Replace email/password auth on /billing with GitHub OAuth." \
   --non-goal "Migrating existing accounts in v1" \
   --constraint "Must work with existing Stripe customer IDs" \
   --success-criteria "New users can sign in with GitHub on /billing"
 
-plot attach pl-abc12345 seeds_issue:sd-123 --role tracks
-plot attach pl-abc12345 mulch_record:mx-101 --role informs
+plot attach plot-abc12345 seeds_issue:sd-123 --role tracks
+plot attach plot-abc12345 mulch_record:mx-101 --role informs
 
-plot status pl-abc12345 ready          # drafting → ready (humans only)
+plot status plot-abc12345 ready          # drafting → ready (humans only)
 
 plot list                              # all Plots, status, last update
-plot show  pl-abc12345                 # full record + recent events
-plot edit  pl-abc12345                 # opens intent JSON in $EDITOR
-plot answer pl-abc12345 q-1 "no — hard cut"
-plot detach pl-abc12345 att-002
+plot show  plot-abc12345                 # full record + recent events
+plot edit  plot-abc12345                 # opens intent JSON in $EDITOR
+plot answer plot-abc12345 q-1 "no — hard cut"
+plot detach plot-abc12345 att-002
 ```
 
 Each command accepts `--json` (machine output) where it makes sense.
@@ -63,7 +63,7 @@ Each command accepts `--json` (machine output) where it makes sense.
 Orchestrators (warren, overstory) dispatch agents with `PLOT_ID` and `PLOT_ACTOR` set in the environment:
 
 ```bash
-export PLOT_ID=pl-abc12345
+export PLOT_ID=plot-abc12345
 export PLOT_ACTOR=agent:claude:run-456
 
 plot get --view implementer            # primes context — no full event log
@@ -107,9 +107,9 @@ await plot.attach({ type: "seeds_issue", ref: "sd-123", role: "tracks" });
 await plot.setStatus("ready");
 
 // Agent side — orchestrator constructs the store with an agent actor.
-const view = await store.get("pl-abc12345").view("implementer");
+const view = await store.get("plot-abc12345").view("implementer");
 await store
-  .get("pl-abc12345")
+  .get("plot-abc12345")
   .append({ type: "decision_made", data: { summary: "...", rationale: "..." } });
 ```
 
@@ -144,7 +144,7 @@ bun run typecheck     # tsc --noEmit
 - **Runtime:** Bun (runs TypeScript directly, no build step)
 - **Language:** TypeScript with strict mode (`noUncheckedIndexedAccess`, no `any`)
 - **Linting:** Biome (formatter + linter in one tool)
-- **Storage:** JSON files on disk (`.plot/pl-*.json`), append-only event log per Plot (`.plot/pl-*.events.jsonl`), SQLite index (`.plot/.index.db`, gitignored)
+- **Storage:** JSON files on disk (`.plot/plot-*.json`), append-only event log per Plot (`.plot/plot-*.events.jsonl`), SQLite index (`.plot/.index.db`, gitignored)
 
 ## Documentation
 
