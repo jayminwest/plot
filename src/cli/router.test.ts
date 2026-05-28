@@ -185,7 +185,7 @@ describe("status", () => {
 		const id = (await run("user:jw", ["init", "X"])).out.trim();
 		const r = await run("user:jw", ["status", id, "frozen"]);
 		expect(r.code).toBe(2);
-		expect(r.err).toContain("invalid status");
+		expect(r.err).toContain("plot status: invalid status");
 	});
 
 	test("agents cannot transition status (ACL)", async () => {
