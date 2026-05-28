@@ -60,7 +60,8 @@
 				"src/io.ts",
 				"src/lock.ts",
 				"scripts/check-debt-markers.ts",
-				"scripts/check-file-sizes.ts"
+				"scripts/check-file-sizes.ts",
+				"scripts/validate-agents-md.ts"
 			],
 			"linter": {
 				"rules": {
