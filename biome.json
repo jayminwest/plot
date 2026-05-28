@@ -23,10 +23,26 @@
 				"useImportType": "error",
 				"useExportType": "error",
 				"useNodejsImportProtocol": "error",
-				"useTemplate": "error"
+				"useTemplate": "error",
+				"useFilenamingConvention": {
+					"level": "error",
+					"options": {
+						"strictCase": true,
+						"requireAscii": true,
+						"filenameCases": ["kebab-case"]
+					}
+				}
 			},
 			"complexity": {
-				"noUselessTypeConstraint": "error"
+				"noUselessTypeConstraint": "error",
+				"noExcessiveLinesPerFunction": {
+					"level": "error",
+					"options": { "maxLines": 500 }
+				},
+				"noExcessiveCognitiveComplexity": {
+					"level": "error",
+					"options": { "maxAllowedComplexity": 15 }
+				}
 			}
 		}
 	},
@@ -34,5 +50,23 @@
 		"enabled": true,
 		"indentStyle": "tab",
 		"lineWidth": 100
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"src/cli/commands/doctor.ts",
+				"src/cli/commands/edit.ts",
+				"src/cli/runtime.ts",
+				"src/io.ts",
+				"src/lock.ts"
+			],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noExcessiveCognitiveComplexity": "off"
+					}
+				}
+			}
+		}
+	]
 }

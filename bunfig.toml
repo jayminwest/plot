@@ -1,0 +1,16 @@
+# Bun runtime configuration for plot.
+# See https://bun.sh/docs/runtime/bunfig for available options.
+#
+# Tests live next to the file under test inside `src/` (e.g. src/store.test.ts,
+# src/cli/router.test.ts), so test discovery is rooted at the repo root.
+# `bun test` picks up everything matching *.test.ts under src/.
+#
+# Coverage reporters default to text + lcov so `bun test --coverage`
+# (used by `test:ci`) produces both the human-readable table in stderr
+# and `coverage/lcov.info` for downstream tooling without needing extra
+# CLI flags.
+
+[test]
+root = "src"
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
