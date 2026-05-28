@@ -6,6 +6,7 @@
 // into exit code 1 with a stderr message — no stack traces in the default
 // path (set PLOT_DEBUG=1 to see them).
 
+import { log } from "../log.ts";
 import { VERSION } from "../version.ts";
 import { runAnswer } from "./commands/answer.ts";
 import { runAppend } from "./commands/append.ts";
@@ -74,8 +75,12 @@ export async function runCli(opts: RunCliOptions): Promise<number> {
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		io.err(`plot ${first}: ${message}\n`);
-		if (env.get("PLOT_DEBUG") && err instanceof Error && err.stack) {
-			io.err(`${err.stack}\n`);
+		if (env.get("PLOT_DEBUG")) {
+			// Route the full diagnostic (stack + any context) through the pino
+			// logger rather than the user-facing IO stream. The logger only
+			// surfaces this when PLOT_DEBUG=1 (its level is debug), and its
+			// redact paths scrub any secrets that rode along on the error.
+			log.debug({ err, command: first }, "command failed");
 		}
 		return 1;
 	}

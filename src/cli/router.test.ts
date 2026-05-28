@@ -71,7 +71,7 @@ describe("router help + dispatch", () => {
 		expect(r.err).toContain("unknown command");
 	});
 
-	test("PLOT_DEBUG=1 emits stack traces", async () => {
+	test("PLOT_DEBUG=1 surfaces the error message (stack goes to the pino logger)", async () => {
 		const { io, err } = makeIO();
 		const env: CliEnv = {
 			get: (n) =>
@@ -86,9 +86,9 @@ describe("router help + dispatch", () => {
 		const code = await runCli({ argv: ["show", "plot-aaaaaaaa"], io, env });
 		expect(code).toBe(1);
 		const out = err.join("");
+		// IO carries the message; the stack routes through src/log.ts, not io.err.
 		expect(out).toContain("not found");
-		// stack line from Error
-		expect(out).toMatch(/at\s+/);
+		expect(out).not.toMatch(/\n\s+at\s+/);
 	});
 });
 

@@ -221,12 +221,29 @@ work), which is distinct from the `pl-XXXX` debt-marker prefix.
 
 ### Log scrubbing
 
-Plot will route structured output and diagnostics through a pino logger
-with redaction once child seed `plot-d7b6` lands. Until then there is no
-central logger; command output goes through `src/cli/format.ts`. After
-`plot-d7b6` lands, the concrete redact-path policy (npm tokens, GitHub
-PATs, API keys must never be printed) will be documented here — see
-src/log.ts after pino lands (plot-d7b6).
+Diagnostics flow through a [pino](https://github.com/pinojs/pino) logger in
+`src/log.ts`, distinct from the user-facing command output that goes through
+`src/cli/format.ts` and the injected `CliIO` streams. The logger sits at the
+`info` level and emits JSON by default; setting `PLOT_DEBUG=1` drops it to
+`debug` and routes through `pino-pretty` for readable terminal output. This is
+the same activation env var the CLI documents (`plot --help` → `PLOT_DEBUG`);
+no new flag was introduced. The router's error path logs the full stack +
+context through `log.debug` under `PLOT_DEBUG=1` rather than printing it to
+stderr directly.
+
+Secrets must never reach any log sink — npm tokens, GitHub PATs, API keys,
+passwords, and auth/cookie headers. `src/log.ts` configures pino's `redact`
+with `censor: "[REDACTED]"` over these paths (`REDACT_PATHS`):
+
+- `token`, `apiKey`, `password`, `secret` — bare root-level keys.
+- `*.token`, `*.apiKey`, `*.password`, `*.secret` — the same keys one level
+  deep under any object. pino's path syntax does not support `**.key`, so each
+  secret key is listed in both the bare and `*.key` wildcard form to cover the
+  common shapes conservatively.
+- `headers.authorization`, `headers.cookie` — request-context headers.
+
+`src/log.test.ts` asserts these are scrubbed (root, one-level-nested, and
+header forms) and that non-sensitive fields pass through untouched.
 
 ### Configuration
 
