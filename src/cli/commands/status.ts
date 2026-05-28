@@ -16,7 +16,7 @@ export async function runStatus(ctx: CliContext): Promise<number> {
 	}
 	if (!(PLOT_STATUSES as readonly string[]).includes(next)) {
 		io.err(
-			`invalid status ${JSON.stringify(next)} (expected one of ${PLOT_STATUSES.join(", ")})\n`,
+			`plot status: invalid status ${JSON.stringify(next)} (expected one of ${PLOT_STATUSES.join(", ")})\n`,
 		);
 		return 2;
 	}
