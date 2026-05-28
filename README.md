@@ -60,7 +60,7 @@ Each command accepts `--json` (machine output) where it makes sense.
 
 ### Agent integration (SPEC §9.2)
 
-Orchestrators (warren, overstory) dispatch agents with `PLOT_ID` and `PLOT_ACTOR` set in the environment:
+Orchestrators (warren) dispatch agents with `PLOT_ID` and `PLOT_ACTOR` set in the environment:
 
 ```bash
 export PLOT_ID=plot-abc12345
