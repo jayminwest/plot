@@ -21,7 +21,9 @@ import { listPlotIds, plotEventsPath, plotJsonPath, readEvents, readJson } from 
 import { migratePlot } from "../../migrations.ts";
 import {
 	type Attachment,
+	INTENT_FIELDS,
 	type Intent,
+	type IntentField,
 	PLOT_EVENT_TYPES,
 	type Plot,
 	type PlotEvent,
@@ -188,8 +190,57 @@ function validateEventShape(events: PlotEvent[], findings: Finding[]): void {
 				code: "invalid_event_data",
 				message: `${where} (${ev.type}): data is not an object`,
 			});
+			continue;
+		}
+		if (ev.type === "intent_edited") {
+			validateIntentEditedData(ev.data as Record<string, unknown>, where, findings);
 		}
 	}
+}
+
+// Verify an `intent_edited` event's data matches the typed shape from
+// SPEC §3.2: { field: IntentField, value: string | string[] } where goal
+// requires a string and the list fields require string[]. Anything else is
+// surfaced as `invalid_event_data` rather than silently coerced during
+// replay (which would mask data loss behind an intent_drift warning).
+function validateIntentEditedData(
+	data: Record<string, unknown>,
+	where: string,
+	findings: Finding[],
+): void {
+	const field = data.field;
+	if (typeof field !== "string" || !(INTENT_FIELDS as readonly string[]).includes(field)) {
+		findings.push({
+			severity: "error",
+			code: "invalid_event_data",
+			message: `${where} (intent_edited): unknown field ${JSON.stringify(field)}`,
+		});
+		return;
+	}
+	const value = data.value;
+	if (field === "goal") {
+		if (typeof value !== "string") {
+			findings.push({
+				severity: "error",
+				code: "invalid_event_data",
+				message: `${where} (intent_edited): field "goal" requires a string value, got ${describeType(value)}`,
+			});
+		}
+		return;
+	}
+	if (!Array.isArray(value) || value.some((v) => typeof v !== "string")) {
+		findings.push({
+			severity: "error",
+			code: "invalid_event_data",
+			message: `${where} (intent_edited): field ${JSON.stringify(field)} requires a string[] value`,
+		});
+	}
+}
+
+function describeType(value: unknown): string {
+	if (value === null) return "null";
+	if (Array.isArray(value)) return "array";
+	return typeof value;
 }
 
 // Reconstruct the structured fields from the event log and compare against
@@ -238,11 +289,22 @@ function replayPlot(events: PlotEvent[]): ReplayState {
 				state.status = ev.data.to;
 				break;
 			case "intent_edited": {
-				const { field, value } = ev.data;
+				// Malformed payloads are reported by validateIntentEditedData as
+				// `invalid_event_data` findings; skip applying them here instead
+				// of coercing (e.g. goal -> "") so replay reflects what the log
+				// actually says, not a sanitized guess.
+				const field = ev.data.field as IntentField | undefined;
+				const value = ev.data.value;
 				if (field === "goal") {
-					state.intent.goal = typeof value === "string" ? value : "";
-				} else if (Array.isArray(value)) {
-					state.intent[field] = [...value];
+					if (typeof value === "string") state.intent.goal = value;
+				} else if (
+					field === "non_goals" ||
+					field === "constraints" ||
+					field === "success_criteria"
+				) {
+					if (Array.isArray(value) && value.every((v) => typeof v === "string")) {
+						state.intent[field] = [...(value as string[])];
+					}
 				}
 				break;
 			}

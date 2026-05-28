@@ -764,6 +764,63 @@ describe("doctor", () => {
 		expect(r.out).toContain("status_drift");
 	});
 
+	test("intent_edited with value type mismatching field flags invalid_event_data", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { appendFile } = await import("node:fs/promises");
+		// goal must be string, but here value is an array → malformed.
+		const badGoal = {
+			type: "intent_edited",
+			actor: "user:jw",
+			at: "2026-01-01T00:00:00Z",
+			data: { field: "goal", value: ["oops"] },
+		};
+		// non_goals must be string[], but here value is a plain string → malformed.
+		const badNonGoals = {
+			type: "intent_edited",
+			actor: "user:jw",
+			at: "2026-01-01T00:00:01Z",
+			data: { field: "non_goals", value: "not-an-array" },
+		};
+		await appendFile(
+			join(dir, `${id}.events.jsonl`),
+			`${JSON.stringify(badGoal)}\n${JSON.stringify(badNonGoals)}\n`,
+			"utf-8",
+		);
+		const r = await run("user:jw", ["doctor", "--json"]);
+		expect(r.code).toBe(1);
+		const parsed = JSON.parse(r.out);
+		const plot = parsed.plots.find((p: { id: string }) => p.id === id);
+		const invalid = plot.findings.filter(
+			(f: { code: string; severity: string }) =>
+				f.code === "invalid_event_data" && f.severity === "error",
+		);
+		expect(invalid.length).toBe(2);
+		expect(invalid.some((f: { message: string }) => f.message.includes(`"goal"`))).toBe(true);
+		expect(invalid.some((f: { message: string }) => f.message.includes(`"non_goals"`))).toBe(true);
+	});
+
+	test("intent_edited with unknown field flags invalid_event_data", async () => {
+		const id = (await run("user:jw", ["init", "X"])).out.trim();
+		const { appendFile } = await import("node:fs/promises");
+		const bogus = {
+			type: "intent_edited",
+			actor: "user:jw",
+			at: "2026-01-01T00:00:00Z",
+			data: { field: "mystery", value: "x" },
+		};
+		await appendFile(join(dir, `${id}.events.jsonl`), `${JSON.stringify(bogus)}\n`, "utf-8");
+		const r = await run("user:jw", ["doctor", "--json"]);
+		expect(r.code).toBe(1);
+		const parsed = JSON.parse(r.out);
+		const plot = parsed.plots.find((p: { id: string }) => p.id === id);
+		expect(
+			plot.findings.some(
+				(f: { code: string; message: string }) =>
+					f.code === "invalid_event_data" && f.message.includes("unknown field"),
+			),
+		).toBe(true);
+	});
+
 	test("malformed events file surfaces events_unreadable", async () => {
 		const id = (await run("user:jw", ["init", "X"])).out.trim();
 		const { appendFile } = await import("node:fs/promises");
