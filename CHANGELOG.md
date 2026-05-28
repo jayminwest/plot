@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-28
+
+Level-5 agent-readiness uplift. No change to the CLI surface or SPEC behavior —
+this release adds the engineering substrate (quality ratchets, structured
+diagnostics, governance docs, CI) that makes Plot safe for autonomous agents to
+work in. Ported from the canonical `templates/l5-toolkit/` tree and adapted to
+this repo.
+
+### Added
+- **Structured logger (`src/log.ts`):** a pino instance gated on `PLOT_DEBUG`,
+  separate from the user-facing `CliIO` output channel. Defaults to `info`/JSON;
+  `PLOT_DEBUG=1` drops it to `debug` and routes through `pino-pretty`. Includes
+  defense-in-depth redaction of secrets (tokens, API keys, passwords, auth/cookie
+  headers) so credentials never reach a log sink. The router now routes the full
+  failure diagnostic (stack + context) through this logger instead of the user
+  stream.
+- **Quality ratchets:** `check-file-sizes`, `check-debt-markers`, and
+  `check-coverage` scripts with co-located tests and JSON budget files under
+  `budgets/`, plus `report-quality-metrics` and `report-test-timing` reporters.
+- **Governance & docs:** `AGENTS.md` (with a `validate-agents-md` validator),
+  `RUNBOOK.md`, the `plot-coordination` `.factory` skill, `.github/dependabot.yml`,
+  and an expanded CI workflow wiring the new `check:*` aggregator.
+- **Tooling baselines:** Biome, knip, jscpd (`.jscpd.json`), bunfig, a
+  `.devcontainer/`, a `pre-commit` hook (`scripts/hooks/`), and a stricter
+  `tsconfig`.
+
+### Changed
+- **`README`:** dropped overstory from the active-orchestrator references.
+
 ## [0.3.1] — 2026-05-28
 
 ### Changed

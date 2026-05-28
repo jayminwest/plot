@@ -5,7 +5,7 @@ A typed, queryable, JSON-backed coordination object for multi-agent work.
 [![CI](https://github.com/jayminwest/plot/actions/workflows/ci.yml/badge.svg)](https://github.com/jayminwest/plot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Status:** V0.2.0 — single-user binder. See [SPEC.md](SPEC.md) for the full design and [CHANGELOG.md](CHANGELOG.md) for the release surface.
+> **Status:** V0.4.0 — single-user binder. See [SPEC.md](SPEC.md) for the full design and [CHANGELOG.md](CHANGELOG.md) for the release surface.
 
 Plot is a **binder, not a container.** It holds the coordination metadata around a unit of work and *references* — with typed, role-labeled links — the seeds issues, mulch records, canopy prompts, agent runs, and PRs that constitute its substance. Code lives in git. Issues live in seeds. Expertise lives in mulch. Plot makes them legible together.
 
