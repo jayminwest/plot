@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-28
+
+### Changed
+- **CLI `--json` output (SPEC §11):** standardized JSON output across all CLI
+  commands — every `--json` response now goes through a single formatter that
+  emits a trailing newline and uses consistent stringify settings, so shell
+  pipelines (`jq`, line-oriented readers) no longer see commands that omit the
+  final newline.
+- **`plot status` error prefix:** invalid-status errors are now prefixed with
+  the command name (`plot status: ...`) to match the rest of the CLI's error
+  reporting style.
+
+### Fixed
+- **`plot doctor` replay (SPEC §8):** malformed `intent_edited` payloads are
+  now flagged as replay errors instead of being silently coerced. Previously a
+  bad payload could survive `doctor` clean; it now surfaces as a structured
+  failure with the offending event's index.
+
 ## [0.3.0] — 2026-05-18
 
 ### Added
