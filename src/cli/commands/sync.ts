@@ -106,7 +106,7 @@ function emit(
 	text: string,
 ): void {
 	if (flagBool(args, "json")) {
-		io.out(`${JSON.stringify(jsonPayload)}\n`);
+		io.out(`${JSON.stringify(jsonPayload, null, 2)}\n`);
 	} else {
 		io.out(text);
 	}

@@ -18,7 +18,7 @@ export async function runDetach(ctx: CliContext): Promise<number> {
 		const handle = store.get(id);
 		await handle.detach(attachmentId);
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify({ id, removed: attachmentId })}\n`);
+			io.out(`${JSON.stringify({ id, removed: attachmentId }, null, 2)}\n`);
 		} else {
 			io.out(`removed ${attachmentId} from ${id}\n`);
 		}

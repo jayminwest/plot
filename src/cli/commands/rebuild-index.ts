@@ -19,7 +19,7 @@ export async function runRebuildIndex(ctx: CliContext): Promise<number> {
 		await store.index.rebuild(store.dir);
 		const ids = await listPlotIds(store.dir);
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify({ rebuilt: ids.length, dir: store.dir })}\n`);
+			io.out(`${JSON.stringify({ rebuilt: ids.length, dir: store.dir }, null, 2)}\n`);
 		} else {
 			io.out(
 				`rebuilt index for ${ids.length} plot${ids.length === 1 ? "" : "s"} in ${store.dir}\n`,

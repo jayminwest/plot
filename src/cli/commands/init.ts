@@ -20,7 +20,7 @@ export async function runInit(ctx: CliContext): Promise<number> {
 	return withStore(ctx.env, async (store) => {
 		const handle = await store.create({ name });
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify({ id: handle.id, name })}\n`);
+			io.out(`${JSON.stringify({ id: handle.id, name }, null, 2)}\n`);
 		} else {
 			io.out(`${handle.id}\n`);
 		}

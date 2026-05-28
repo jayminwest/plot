@@ -37,7 +37,7 @@ export async function runAnswer(ctx: CliContext): Promise<number> {
 			data: { question_id: questionId, text },
 		});
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify(event)}\n`);
+			io.out(`${JSON.stringify(event, null, 2)}\n`);
 		} else {
 			io.out(`answered ${questionId} on ${id}\n`);
 		}
