@@ -58,7 +58,9 @@
 				"src/cli/commands/edit.ts",
 				"src/cli/runtime.ts",
 				"src/io.ts",
-				"src/lock.ts"
+				"src/lock.ts",
+				"scripts/check-debt-markers.ts",
+				"scripts/check-file-sizes.ts"
 			],
 			"linter": {
 				"rules": {
