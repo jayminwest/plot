@@ -41,7 +41,7 @@ export async function runAttach(ctx: CliContext): Promise<number> {
 		const handle = store.get(id);
 		const attachment = await handle.attach({ type: type as AttachmentType, ref, role });
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify(attachment)}\n`);
+			io.out(`${JSON.stringify(attachment, null, 2)}\n`);
 		} else {
 			io.out(`${attachment.id}  ${attachment.type}  ${attachment.ref}  role=${attachment.role}\n`);
 		}

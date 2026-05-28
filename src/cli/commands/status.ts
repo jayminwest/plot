@@ -25,7 +25,7 @@ export async function runStatus(ctx: CliContext): Promise<number> {
 		const handle = store.get(id);
 		const plot = await handle.setStatus(next as PlotStatus);
 		if (flagBool(args, "json")) {
-			io.out(`${JSON.stringify({ id: plot.id, status: plot.status })}\n`);
+			io.out(`${JSON.stringify({ id: plot.id, status: plot.status }, null, 2)}\n`);
 		} else {
 			io.out(`${plot.id} → ${plot.status}\n`);
 		}

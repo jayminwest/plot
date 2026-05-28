@@ -88,7 +88,7 @@ export async function runDoctor(ctx: CliContext): Promise<number> {
 	};
 
 	if (flagBool(args, "json")) {
-		io.out(`${JSON.stringify(report)}\n`);
+		io.out(`${JSON.stringify(report, null, 2)}\n`);
 	} else {
 		io.out(formatReport(report));
 	}
