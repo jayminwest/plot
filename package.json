@@ -39,6 +39,10 @@
 		"typecheck": "tsc --noEmit",
 		"check:size": "bun run scripts/check-file-sizes.ts",
 		"check:debt": "bun run scripts/check-debt-markers.ts",
+		"check:coverage": "bun run scripts/check-coverage.ts",
+		"test:ci": "mkdir -p test-results && bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage --reporter=junit --reporter-outfile=test-results/junit.xml",
+		"report:test-timing": "bun run scripts/report-test-timing.ts",
+		"report:quality-metrics": "bun run scripts/report-quality-metrics.ts",
 		"version:bump": "bun run scripts/version-bump.ts"
 	},
 	"devDependencies": {
