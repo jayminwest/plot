@@ -40,8 +40,8 @@ plot init "Add OAuth to billing portal"
 
 plot intent plot-abc12345 \
   --goal "Replace email/password auth on /billing with GitHub OAuth." \
-  --non-goal "Migrating existing accounts in v1" \
-  --constraint "Must work with existing Stripe customer IDs" \
+  --non-goals "Migrating existing accounts in v1" \
+  --constraints "Must work with existing Stripe customer IDs" \
   --success-criteria "New users can sign in with GitHub on /billing"
 
 plot attach plot-abc12345 seeds_issue:sd-123 --role tracks
