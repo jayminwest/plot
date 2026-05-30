@@ -3,8 +3,9 @@
 // Commands are registered in a flat map; each handler receives the raw argv
 // tail and parses it with a command-specific spec. Top-level `--help` and
 // `--version` short-circuit before dispatch. Errors thrown by handlers turn
-// into exit code 1 with a stderr message — no stack traces in the default
-// path (set PLOT_DEBUG=1 to see them).
+// into exit code 1 with a stderr message — no stack traces on stderr in the
+// default path (set PLOT_DEBUG=1 to route the full diagnostic through the
+// debug logger).
 
 import { log } from "../log.ts";
 import { VERSION } from "../version.ts";
@@ -105,13 +106,16 @@ function renderHelp(): string {
 	lines.push("Global options:");
 	lines.push("  --help, -h     Show this help");
 	lines.push("  --version, -v  Print version");
-	lines.push("  --json         Machine-readable output (per command)");
+	lines.push("");
+	lines.push("Per-command options:");
+	lines.push("  --json         Machine-readable output; supported by a subset of");
+	lines.push("                 commands (see `plot <command> --help`)");
 	lines.push("");
 	lines.push("Env:");
 	lines.push("  PLOT_DIR       Plot directory (default: .plot)");
 	lines.push("  PLOT_ACTOR     Override actor (e.g. user:jw, agent:claude:run-1)");
 	lines.push("  PLOT_ID        Default Plot ID for agent commands (`get`, `append`)");
-	lines.push("  PLOT_DEBUG     Set to 1 to print stack traces on error");
+	lines.push("  PLOT_DEBUG     Set to 1 to route diagnostics through the debug logger");
 	lines.push("");
 	return `${lines.join("\n")}\n`;
 }
