@@ -108,8 +108,7 @@ function renderHelp(): string {
 	lines.push("  --version, -v  Print version");
 	lines.push("");
 	lines.push("Per-command options:");
-	lines.push("  --json         Machine-readable output; supported by a subset of");
-	lines.push("                 commands (see `plot <command> --help`)");
+	lines.push("  --json         Machine-readable output; supported by most subcommands");
 	lines.push("");
 	lines.push("Env:");
 	lines.push("  PLOT_DIR       Plot directory (default: .plot)");
