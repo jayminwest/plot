@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-06-07
+
+### Fixed
+- **CLI help drift (`src/cli/router.ts`):** corrected the top-level help so the
+  `--json` flag is described under the commands that actually support it rather
+  than as a global option, and fixed the `PLOT_DEBUG` env var description to
+  match its real behavior (drops the logger to `debug` and routes through
+  `pino-pretty`). Documentation-only change to the rendered help text; no
+  behavioral change to any command.
+
 ## [0.4.0] — 2026-05-28
 
 Level-5 agent-readiness uplift. No change to the CLI surface or SPEC behavior —
