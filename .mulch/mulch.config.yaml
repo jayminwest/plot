@@ -7,6 +7,7 @@ domains:
   acl: {}
   views: {}
   cli: {}
+  quality: {}
 governance:
   max_entries: 100
   warn_entries: 150
