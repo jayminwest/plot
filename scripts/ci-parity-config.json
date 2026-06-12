@@ -1,0 +1,7 @@
+{
+	"$comment": "Sanctioned CI<->check:all divergences (docs/check-all-standard.md s6 at the os-eco root). aliases: test:ci runs the same suite as the check:coverage gate, with junit + lcov reporters so CI can upload artifacts. ciOnly: report:test-timing and report:quality-metrics are always()-run CI summary emitters with no gate semantics.",
+	"aliases": {
+		"test:ci": "check:coverage"
+	},
+	"ciOnly": ["report:test-timing", "report:quality-metrics"]
+}

@@ -53,6 +53,12 @@
 	},
 	"overrides": [
 		{
+			"includes": ["scripts/check-all.ts", "scripts/check-ci-parity.ts"],
+			"formatter": {
+				"enabled": false
+			}
+		},
+		{
 			"includes": [
 				"src/cli/commands/doctor.ts",
 				"src/cli/commands/edit.ts",

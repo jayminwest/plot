@@ -82,6 +82,9 @@ plot/
 │       ├── format.ts       # human + JSON output helpers
 │       └── commands/       # one file per subcommand
 ├── scripts/                # quality-gate scripts + reporters
+│   ├── check-all.ts            # canonical quiet runner (byte-identical fleet-wide)
+│   ├── check-ci-parity.ts      # CI <-> check:all parity gate (byte-identical fleet-wide)
+│   ├── ci-parity-config.json   # sanctioned CI-only / alias escape hatches
 │   ├── validate-agents-md.ts   # validates this file's references
 │   ├── check-file-sizes.ts
 │   ├── check-debt-markers.ts
@@ -124,14 +127,31 @@ bun run test:ci                   # bun test with coverage (lcov) + junit report
 Quality gates (each lives in `scripts/`):
 
 ```bash
+bun run verify                    # agent-facing entry point (alias of check:all)
+bun run check:all                 # scripts/check-all.ts — canonical quiet runner, all 9 gates
 bun run check:size                # scripts/check-file-sizes.ts
 bun run check:debt                # scripts/check-debt-markers.ts
+bun run check:dups                # jscpd duplication budget
+bun run check:deps                # knip unused/undeclared dependency check
 bun run check:coverage            # scripts/check-coverage.ts
 bun run check:agents              # scripts/validate-agents-md.ts (this file)
+bun run check:ci-parity           # scripts/check-ci-parity.ts — CI <-> check:all parity
 bun run report:test-timing        # slowest suites/tests from junit.xml
 bun run report:quality-metrics    # consolidated quality summary
 bun run version:bump              # scripts/version-bump.ts <major|minor|patch>
 ```
+
+`check:all` is the os-eco fleet's canonical quiet runner (see
+docs/check-all-standard.md at the os-eco meta-repo root). It runs the
+nine core gates in canonical order — `lint`, `typecheck`,
+`check:agents`, `check:dups`, `check:deps`, `check:size`, `check:debt`,
+`check:coverage`, `check:ci-parity` — printing one aligned line per
+gate and a final tally. On failure it prints parsed failure signatures
+plus a `re-run` hint; `CHECK_ALL_VERBOSE=1` streams full output and
+`--bail` stops at the first failure. `scripts/check-all.ts` and
+`scripts/check-ci-parity.ts` are byte-identical fleet-wide — never edit
+them in place; per-repo variation lives in `package.json` and
+`scripts/ci-parity-config.json`.
 
 Each gate either passes silently (or prints a short summary) or prints a
 remediation pointer and exits non-zero. The ratchet scripts
@@ -262,17 +282,16 @@ Before committing any code change, run all of the following from the
 repo root:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
-bun run check:agents
+bun run verify
 ```
 
-All must exit 0. CI runs `bun run lint`, `bun run typecheck`, and
-`bun test` (see `.github/workflows/ci.yml`); local greens are the
-contract. Run the ratchets (`check:size`, `check:debt`,
-`check:coverage`) too whenever you touch source — they will become part
-of the consolidated gate (`check:all`) as the L5 uplift completes.
+`verify` is the agent-facing alias of `bun run check:all` — the
+canonical quiet runner described in the Commands section. All nine
+gates must pass. CI runs the same `bun run check:all` (see
+`.github/workflows/ci.yml`); local greens are the contract, and the
+`check:ci-parity` gate proves CI and the local gate set stay
+equivalent. To iterate on a single gate, re-run it directly (e.g.
+`bun run check:coverage` or `bun test src/store.test.ts`).
 
 ### Coverage discipline
 
@@ -310,8 +329,13 @@ not silently extend the allowlist.
 
 ### CI parity
 
-`.github/workflows/ci.yml` runs lint, typecheck, and tests on push to
-`main` and on every pull request. The release workflow
+`.github/workflows/ci.yml` runs `bun run check:all` (all nine gates)
+plus `bun run test:ci` (the same suite as `check:coverage`, re-run with
+junit + lcov reporters for artifact uploads) on push to `main` and on
+every pull request. `bun run check:ci-parity` enforces that every
+`bun run <X>` step in ci.yml is reachable from the `check:all`
+manifest; the only sanctioned divergences are the justified `aliases` /
+`ciOnly` entries in `scripts/ci-parity-config.json`. The release workflow
 `.github/workflows/publish.yml` re-runs the same suite, then publishes
 to npm and creates a GitHub release from the matching `CHANGELOG.md`
 section. Operational procedures for releases live in `RUNBOOK.md`.
@@ -327,8 +351,8 @@ When an agent works in plot, it should:
    `sd ready`; GitHub: `gh issue list`).
 3. **Make focused changes.** One concern per commit. Preserve existing
    conventions — adapt, do not overwrite.
-4. **Run gates locally.** `bun run lint`, `bun run typecheck`,
-   `bun test`, and `bun run check:agents` must all exit 0 before commit.
+4. **Run gates locally.** `bun run verify` (the `check:all` quiet
+   runner) must exit 0 before commit.
 5. **Pin debt markers.** Any new `TODO` / `FIXME` must reference a
    tracker id (`pl-XXXX`, `mx-XXXX`, `#NNN`, or a URL) on the same line.
 6. **Respect the write-ACL.** When working *through* a Plot (not on the
