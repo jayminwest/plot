@@ -285,7 +285,7 @@ plot init <name>                                # create new Plot, return ID
 plot list                                       # list all Plots in .plot/
 plot show <id>                                  # pretty-print fields + recent events
 plot edit <id>                                  # open intent in $EDITOR
-plot intent <id> --goal "..." --non-goal "..."  # non-interactive intent edit
+plot intent <id> --goal "..." --non-goals "..."  # non-interactive intent edit
 plot status <id> <drafting|ready|active|done|archived>
 plot attach <id> <type>:<ref> --role <role>
 plot detach <id> <attachment-id>

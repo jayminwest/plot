@@ -171,6 +171,37 @@ describe("intent", () => {
 		expect(r.code).toBe(2);
 		expect(r.err).toContain("nothing to update");
 	});
+
+	test("plural canonical flags match singular aliases", async () => {
+		const idA = (await run("user:jw", ["init", "X"])).out.trim();
+		const idB = (await run("user:jw", ["init", "X"])).out.trim();
+		await run("user:jw", [
+			"intent",
+			idA,
+			"--non-goal",
+			"a",
+			"--constraint",
+			"b",
+			"--success-criterion",
+			"c",
+		]);
+		await run("user:jw", [
+			"intent",
+			idB,
+			"--non-goals",
+			"a",
+			"--constraints",
+			"b",
+			"--success-criteria",
+			"c",
+		]);
+		const showA = JSON.parse((await run("user:jw", ["show", idA, "--json"])).out);
+		const showB = JSON.parse((await run("user:jw", ["show", idB, "--json"])).out);
+		expect(showA.plot.intent).toEqual(showB.plot.intent);
+		expect(showA.plot.intent.non_goals).toEqual(["a"]);
+		expect(showA.plot.intent.constraints).toEqual(["b"]);
+		expect(showA.plot.intent.success_criteria).toEqual(["c"]);
+	});
 });
 
 describe("status", () => {
