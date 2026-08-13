@@ -57,6 +57,8 @@ describe("router help + dispatch", () => {
 		expect(r.out).toContain("plot");
 		expect(r.out).toContain("init");
 		expect(r.out).toContain("answer");
+		// plot-c10a: per-command --help is not wired, so don't advertise it.
+		expect(r.out).not.toContain("plot <command> --help");
 	});
 
 	test("--version prints version", async () => {
